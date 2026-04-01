@@ -16,14 +16,35 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "")
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+function isAllowedOrigin(origin) {
+    if (!origin || allowedOrigins.length === 0) {
+        return true;
+    }
+
+    if (allowedOrigins.includes(origin)) {
+        return true;
+    }
+
+    try {
+        const { hostname } = new URL(origin);
+        const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+        const isVercelPreview = hostname.endsWith(".vercel.app");
+
+        return isLocalhost || isVercelPreview;
+    } catch {
+        return false;
+    }
+}
+
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        if (isAllowedOrigin(origin)) {
             return callback(null, true);
         }
 
         return callback(new Error("CORS origin not allowed"));
-    }
+    },
+    credentials: true
 }));
 app.use(express.json());
 

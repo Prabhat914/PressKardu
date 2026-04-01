@@ -8,7 +8,10 @@ export function getApiErrorMessage(error, fallbackMessage) {
   }
 
   if (error?.code === "ERR_NETWORK") {
-    return "Backend server se connection nahi ho raha. Windows PowerShell me `npm` block ho sakta hai, isliye root folder se `./backend.cmd` ya `run-dev.cmd` chalao. MongoDB bhi running hona chahiye.";
+    const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+    return isProduction
+      ? "Backend se connection nahi ho pa raha. Thodi der baad try karo, aur agar issue rahe to backend deploy ya CORS configuration check karo."
+      : "Backend server se connection nahi ho raha. Windows PowerShell me `npm` block ho sakta hai, isliye root folder se `./backend.cmd` ya `run-dev.cmd` chalao. MongoDB bhi running hona chahiye.";
   }
 
   if (
@@ -20,7 +23,10 @@ export function getApiErrorMessage(error, fallbackMessage) {
       responseText.includes("AggregateError")
     )
   ) {
-    return "Backend server se connection nahi ho raha. Windows PowerShell me `npm` block ho sakta hai, isliye root folder se `./backend.cmd` ya `run-dev.cmd` chalao. MongoDB bhi running hona chahiye.";
+    const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
+    return isProduction
+      ? "Backend se connection nahi ho pa raha. Thodi der baad try karo, aur agar issue rahe to backend deploy ya CORS configuration check karo."
+      : "Backend server se connection nahi ho raha. Windows PowerShell me `npm` block ho sakta hai, isliye root folder se `./backend.cmd` ya `run-dev.cmd` chalao. MongoDB bhi running hona chahiye.";
   }
 
   if (error?.response?.status === 404) {
