@@ -1087,6 +1087,34 @@ body {
   gap: 18px;
 }
 
+.home-shops__search {
+  width: min(980px, 100%);
+  margin: 0 auto 18px;
+}
+
+.home-shops__search-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(116, 88, 58, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: #2b2118;
+  box-shadow: 0 14px 28px rgba(79, 56, 26, 0.06);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.home-shops__search-input:focus {
+  outline: none;
+  border-color: #b8742c;
+  box-shadow: 0 0 0 4px rgba(184, 116, 44, 0.15);
+  transform: translateY(-1px);
+}
+
+.home-shops__search-input::placeholder {
+  color: #a28c76;
+}
+
 .home-shops__section-head {
   width: min(1180px, 100%);
   margin: 0 auto 18px;

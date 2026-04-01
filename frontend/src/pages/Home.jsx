@@ -39,6 +39,7 @@ function Home() {
   const [paymentStage, setPaymentStage] = useState("idle");
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [shopSearch, setShopSearch] = useState("");
 
   const currentUser = getStoredUser();
   const isUser = currentUser?.role !== "presswala";
@@ -51,6 +52,11 @@ function Home() {
       : 0;
   const fastestEta = shops[0]?.pickupWindow || "Pickup in 25 mins";
   const featuredShop = shops[featuredIndex % Math.max(shops.length, 1)];
+  const filteredShops = shops.filter((shop) =>
+    `${shop.shopName || ""} ${shop.address || ""} ${shop.specialty || ""}`
+      .toLowerCase()
+      .includes(shopSearch.trim().toLowerCase())
+  );
 
   useEffect(() => {
     if (shops.length < 2) {
@@ -340,8 +346,17 @@ function Home() {
         </p>
       </section>
 
+      <section className="home-shops__search">
+        <input
+          className="home-shops__search-input"
+          value={shopSearch}
+          onChange={(event) => setShopSearch(event.target.value)}
+          placeholder="Search by shop name, area, or specialty"
+        />
+      </section>
+
       <section className="home-shops__stack">
-        {shops.map((shop, index) => (
+        {filteredShops.map((shop, index) => (
           <PressCard
             key={shop._id || `${shop.shopName}-${index}`}
             shop={shop}
@@ -382,6 +397,12 @@ function Home() {
           </PressCard>
         ))}
       </section>
+
+      {!loading && filteredShops.length === 0 && shopSearch.trim() && (
+        <p className="home-shops__state home-shops__state--warning">
+          Is search se koi shop match nahi hui. Dusra keyword try karo.
+        </p>
+      )}
 
       {selectedShop && (
         <section className={`order-request${paymentStage !== "idle" ? ` order-request--${paymentStage}` : ""}`}>
