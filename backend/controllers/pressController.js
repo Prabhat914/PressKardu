@@ -94,22 +94,31 @@ exports.getNearbyPressShops = async (req, res) => {
   const { lat, lng } = req.query;
   const latitude = Number.parseFloat(lat);
   const longitude = Number.parseFloat(lng);
+  const maxDistanceKm = Number.parseFloat(req.query.maxDistanceKm) || 25;
 
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return res.status(400).json({ message: "Valid lat and lng query parameters are required" });
   }
 
-  const shops = await PressShop.find({
+  const nearbyShops = await PressShop.find({
     location: {
       $near: {
         $geometry: {
           type: "Point",
           coordinates: [longitude, latitude]
         },
-        $maxDistance: 5000
+        $maxDistance: Math.max(1, maxDistanceKm) * 1000
       }
     }
   });
 
-  res.json(shops);
+  if (nearbyShops.length > 0) {
+    return res.json(nearbyShops);
+  }
+
+  const fallbackShops = await PressShop.find({})
+    .sort({ createdAt: -1, rating: -1 })
+    .limit(20);
+
+  return res.json(fallbackShops);
 };

@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { getFavoriteShopIds, toggleFavoriteShopId } from "../utils/session";
 
+function getShopInitials(name) {
+  return String(name || "Press Shop")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
+
 function PressCard({
   shop,
   index,
@@ -29,6 +38,8 @@ function PressCard({
   const services = Array.isArray(shop.services) && shop.services.length > 0 ? shop.services.slice(0, 3) : [];
   const reviewCount = Array.isArray(shop.reviews) ? shop.reviews.length : 0;
   const bannerTone = shop.isFeatured ? "press-card__banner--featured" : "press-card__banner--standard";
+  const logoSource = shop.logo || shop.logoUrl || "";
+  const shopInitials = getShopInitials(shop.shopName);
 
   return (
     <article className={`press-card ${className}`.trim()} style={style}>
@@ -52,9 +63,18 @@ function PressCard({
       </div>
 
       <div className="press-card__identity">
-        <div>
-          <h3 className="press-card__title">{shop.shopName || "Press Shop"}</h3>
-          <p className="press-card__meta">{address}</p>
+        <div className="press-card__identity-main">
+          <div className="press-card__logo" aria-hidden="true">
+            {logoSource ? (
+              <img className="press-card__logo-image" src={logoSource} alt="" />
+            ) : (
+              <span className="press-card__logo-fallback">{shopInitials}</span>
+            )}
+          </div>
+          <div>
+            <h3 className="press-card__title">{shop.shopName || "Press Shop"}</h3>
+            <p className="press-card__meta">{address}</p>
+          </div>
         </div>
         <div className="press-card__rating-box">
           <strong>{rating === "New" ? "New" : rating}</strong>

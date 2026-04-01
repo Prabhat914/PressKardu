@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import API from "../services/api";
 import LazyPressScene from "../components/LazyPressScene";
@@ -28,6 +28,8 @@ function Signup() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [isResolvingAddress, setIsResolvingAddress] = useState(false);
+  const lastResolvedAddressRef = useRef("");
 
   const handleChange = (e) => {
     setForm({
@@ -73,8 +75,73 @@ function Signup() {
       latitude: String(latitude),
       longitude: String(longitude)
     }));
+    lastResolvedAddressRef.current = form.address.trim().toLowerCase();
     setMessage("Map se shop location select ho gayi.");
   };
+
+  useEffect(() => {
+    if (form.role !== "presswala") {
+      setIsResolvingAddress(false);
+      return undefined;
+    }
+
+    const query = form.address.trim();
+    if (query.length < 6) {
+      setIsResolvingAddress(false);
+      return undefined;
+    }
+
+    const normalizedQuery = query.toLowerCase();
+    if (normalizedQuery === lastResolvedAddressRef.current) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsResolvingAddress(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(query)}`,
+          {
+            signal: controller.signal,
+            headers: {
+              Accept: "application/json"
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Address lookup failed with ${response.status}`);
+        }
+
+        const results = await response.json();
+        const match = Array.isArray(results) ? results[0] : null;
+
+        if (!match?.lat || !match?.lon) {
+          return;
+        }
+
+        lastResolvedAddressRef.current = normalizedQuery;
+        setForm((current) => ({
+          ...current,
+          latitude: String(match.lat),
+          longitude: String(match.lon)
+        }));
+        setMessage("Typed address se map location update ho gayi.");
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error resolving address:", error);
+        }
+      } finally {
+        setIsResolvingAddress(false);
+      }
+    }, 700);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.address, form.role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -231,7 +298,9 @@ function Signup() {
                   <div className="auth-location-card__head">
                     <strong>Shop location</strong>
                     <span>
-                      {form.latitude && form.longitude
+                      {isResolvingAddress
+                        ? "Address se map location match ki ja rahi hai..."
+                        : form.latitude && form.longitude
                         ? `Lat ${Number(form.latitude).toFixed(5)}, Lng ${Number(form.longitude).toFixed(5)}`
                         : "Current location lo ya map par pin choose karo"}
                     </span>

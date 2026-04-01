@@ -1,4 +1,5 @@
-import { CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import { useEffect } from "react";
+import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
 function Picker({ value, onChange }) {
   useMapEvents({
@@ -28,6 +29,22 @@ function Picker({ value, onChange }) {
   );
 }
 
+function RecenterMap({ value }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!value) {
+      return;
+    }
+
+    map.setView([value.latitude, value.longitude], 15, {
+      animate: true
+    });
+  }, [map, value]);
+
+  return null;
+}
+
 function LocationPickerMap({ value, onChange }) {
   const center = value
     ? [value.latitude, value.longitude]
@@ -45,6 +62,7 @@ function LocationPickerMap({ value, onChange }) {
         attribution="&copy; OpenStreetMap"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <RecenterMap value={value} />
       <Picker value={value} onChange={onChange} />
     </MapContainer>
   );

@@ -25,7 +25,7 @@ router.post("/signup",
     signup);
 router.post("/login",
     body("email").isEmail().withMessage("Valid email is required"),
-    body("password").isLength({ min: 6}).withMessage("Password must be at least 6 characters"),
+    body("password").trim().notEmpty().withMessage("Password is required"),
     validateRequest,
     login);
 router.post("/forgot-password",

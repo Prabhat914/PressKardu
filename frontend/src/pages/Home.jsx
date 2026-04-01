@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Map from "../components/Map";
 import PressCard from "../components/PressCard";
@@ -17,6 +17,8 @@ function Home() {
   const [shops, setShops] = useState([]);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [locating, setLocating] = useState(false);
+  const [shopScope, setShopScope] = useState("all");
   const [selectedShop, setSelectedShop] = useState(null);
   const [openMapShopId, setOpenMapShopId] = useState(null);
   const [userLocation, setUserLocation] = useState(DEFAULT_LOCATION);
@@ -40,6 +42,7 @@ function Home() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [shopSearch, setShopSearch] = useState("");
+  const requestFormRef = useRef(null);
 
   const currentUser = getStoredUser();
   const isUser = currentUser?.role !== "presswala";
@@ -71,17 +74,55 @@ function Home() {
   }, [shops]);
 
   useEffect(() => {
-    const fallbackToShops = (nextLocation, message) => {
-      setUserLocation(nextLocation);
-      setShops(enrichShopCollection(buildFallbackShops(nextLocation), nextLocation));
-      setStatus(message);
-      setLoading(false);
-    };
-
-    if (!navigator.geolocation) {
-      fallbackToShops(DEFAULT_LOCATION, "Location access is not supported, so curated PressKardu partners are shown.");
+    if (!selectedShop || !requestFormRef.current) {
       return;
     }
+
+    requestFormRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, [selectedShop]);
+
+  useEffect(() => {
+    const loadAllLiveShops = async () => {
+      setLoading(true);
+
+      try {
+        const res = await API.get("/press");
+        const incomingShops = Array.isArray(res.data) ? res.data : [];
+
+        if (incomingShops.length === 0) {
+          setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
+          setStatus("Abhi live shops add nahi hue hain, isliye curated partners dikh rahe hain.");
+        } else {
+          setShops(enrichShopCollection(incomingShops, userLocation));
+          setStatus("Shopkeeper ke added live shops yahan dikh rahe hain. Current location add karke nearby shops dekh sakte ho.");
+        }
+      } catch (requestError) {
+        console.log(requestError);
+        setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
+        setStatus(
+          `${getApiErrorMessage(
+            requestError,
+            "Live shops API unavailable hai."
+          )} Curated partners are being shown on the home page.`
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllLiveShops();
+  }, []);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setStatus("Browser me location support nahi hai, isliye all live shops hi dikh rahe hain.");
+      return;
+    }
+
+    setLocating(true);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -89,6 +130,8 @@ function Home() {
         const lng = position.coords.longitude;
         const nextLocation = [lat, lng];
         setUserLocation(nextLocation);
+        setShopScope("nearby");
+        setLoading(true);
 
         try {
           const res = await API.get(`/press/nearby?lat=${lat}&lng=${lng}`);
@@ -96,29 +139,52 @@ function Home() {
 
           if (incomingShops.length === 0) {
             setShops(enrichShopCollection(buildFallbackShops(nextLocation), nextLocation));
-            setStatus("No live shops were returned nearby, so curated partners are shown on the home page.");
+            setStatus("Aapke nearby live shops nahi mile, isliye curated partners dikh rahe hain.");
           } else {
             setShops(enrichShopCollection(incomingShops, nextLocation));
-            setStatus("Nearby press shops loaded for your area.");
+            setStatus("Aapke current location ke nearby shops dikh rahe hain.");
           }
         } catch (requestError) {
           console.log(requestError);
-          setShops(enrichShopCollection(buildFallbackShops(nextLocation), nextLocation));
-          setStatus(
-            `${getApiErrorMessage(
-              requestError,
-              "Nearby API is unavailable right now."
-            )} Curated partners are being shown on the home page.`
-          );
+          setStatus(getApiErrorMessage(requestError, "Nearby shops load nahi ho paaye."));
         } finally {
           setLoading(false);
+          setLocating(false);
         }
       },
-      () => {
-        fallbackToShops(DEFAULT_LOCATION, "Location permission was denied, so curated press shops are shown on the home page.");
+      (error) => {
+        if (error?.code === 1) {
+          setStatus("Location permission deny ho gayi. Filhal all live shops hi dikh rahe hain.");
+        } else {
+          setStatus("Current location detect nahi ho paayi. Filhal all live shops hi dikh rahe hain.");
+        }
+        setLocating(false);
       }
     );
-  }, []);
+  };
+
+  const handleShowAllShops = async () => {
+    setShopScope("all");
+    setLoading(true);
+
+    try {
+      const res = await API.get("/press");
+      const incomingShops = Array.isArray(res.data) ? res.data : [];
+
+      if (incomingShops.length === 0) {
+        setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
+        setStatus("Abhi live shops add nahi hue hain, isliye curated partners dikh rahe hain.");
+      } else {
+        setShops(enrichShopCollection(incomingShops, userLocation));
+        setStatus("All live shops dikh rahe hain. Current location add karke nearby shops par switch kar sakte ho.");
+      }
+    } catch (requestError) {
+      console.log(requestError);
+      setStatus(getApiErrorMessage(requestError, "All shops load nahi ho paaye."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOrderChange = (event) => {
     setOrderForm((current) => ({
@@ -337,13 +403,21 @@ function Home() {
 
       <section className="home-shops__section-head">
         <div>
-          <p className="home-shops__eyebrow">Curated selection</p>
-          <h2>Choose the shop that fits your timing</h2>
+          <p className="home-shops__eyebrow">{shopScope === "nearby" ? "Nearby selection" : "Live shop selection"}</p>
+          <h2>{shopScope === "nearby" ? "Choose a nearby shop" : "Choose from all live shops"}</h2>
         </div>
         <p>
-          Open any card map, compare pickup windows, and send a request without
-          leaving the page.
+          Shopkeeper jab address ke saath shop add karega to wo yahan show hoga. User current location add kare to list nearby shops par shift ho jayegi.
         </p>
+      </section>
+
+      <section className="home-shops__scope-actions">
+        <button className="home-shops__scope-button" type="button" onClick={handleUseCurrentLocation} disabled={locating}>
+          {locating ? "Getting current location..." : "Use current location"}
+        </button>
+        <button className="home-shops__scope-button home-shops__scope-button--secondary" type="button" onClick={handleShowAllShops}>
+          Show all live shops
+        </button>
       </section>
 
       <section className="home-shops__search">
@@ -361,16 +435,32 @@ function Home() {
             key={shop._id || `${shop.shopName}-${index}`}
             shop={shop}
             index={index}
-            actionLabel={isUser ? (isBookableShop(shop) ? "Request service" : "Preview only") : null}
+            actionLabel={
+              isUser
+                ? currentUser
+                  ? (isBookableShop(shop) ? "Open request form" : "Preview only")
+                  : (isBookableShop(shop) ? "Login to request" : "Preview only")
+                : null
+            }
             onAction={() => {
+              if (!currentUser) {
+                setOrderMessageTone("warning");
+                setOrderMessage("Login karo, phir request form khul jayega.");
+                navigate("/login");
+                return;
+              }
+
               if (!isBookableShop(shop)) {
                 setOrderMessageTone("warning");
                 setOrderMessage("Curated fallback shops par live booking available nahi hai.");
                 return;
               }
+
               setSelectedShop(shop);
+              setOrderMessageTone("info");
+              setOrderMessage(`"${shop.shopName}" ke liye request form neeche khul gaya hai. Pickup address bharke confirm karo.`);
             }}
-            actionDisabled={!isBookableShop(shop)}
+            actionDisabled={currentUser ? !isBookableShop(shop) : false}
             secondaryActionLabel={openMapShopId === shop._id ? "Hide map" : "Open map"}
             onSecondaryAction={() => setOpenMapShopId((current) => (current === shop._id ? null : shop._id))}
             tertiaryActionLabel="View details"
@@ -405,7 +495,7 @@ function Home() {
       )}
 
       {selectedShop && (
-        <section className={`order-request${paymentStage !== "idle" ? ` order-request--${paymentStage}` : ""}`}>
+        <section ref={requestFormRef} className={`order-request${paymentStage !== "idle" ? ` order-request--${paymentStage}` : ""}`}>
           <div className="order-request__ambient" aria-hidden="true" />
           <div>
             <p className="order-request__eyebrow">New request</p>
