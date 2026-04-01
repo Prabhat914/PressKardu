@@ -610,6 +610,43 @@ body {
   border: 1px solid rgba(123, 92, 59, 0.1);
 }
 
+.auth-location-card,
+.auth-location-picker {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(123, 92, 59, 0.1);
+}
+
+.auth-location-card__head strong {
+  display: block;
+  color: #2c2218;
+}
+
+.auth-location-card__head span,
+.auth-location-picker__hint {
+  color: #715d4b;
+}
+
+.auth-location-card__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-location-picker__hint {
+  margin: 0;
+}
+
+.auth-location-picker__map {
+  height: 280px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(123, 92, 59, 0.14);
+}
+
 .auth-section__head strong {
   display: block;
   color: #2c2218;

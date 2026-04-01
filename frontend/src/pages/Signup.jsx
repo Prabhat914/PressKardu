@@ -3,6 +3,7 @@ import { useState } from "react";
 import API from "../services/api";
 import LazyPressScene from "../components/LazyPressScene";
 import OpeningIntro from "../components/OpeningIntro";
+import LocationPickerMap from "../components/LocationPickerMap";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/apiError";
 import { saveSession } from "../utils/session";
@@ -26,6 +27,7 @@ function Signup() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -36,7 +38,7 @@ function Signup() {
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setMessage("Location access is not supported in this browser.");
+      setMessage("Browser location support available nahi hai. Map par pin drop karke location choose karo.");
       return;
     }
 
@@ -49,10 +51,29 @@ function Signup() {
         }));
         setMessage("Current location added for the shop.");
       },
-      () => {
-        setMessage("Unable to fetch current location.");
+      (error) => {
+        if (error?.code === 1) {
+          setMessage("Location permission deny ho gayi. Browser me location allow karo ya map par pin choose karo.");
+          return;
+        }
+
+        if (error?.code === 2) {
+          setMessage("Current location detect nahi ho pa rahi. Map par manually pin choose karo.");
+          return;
+        }
+
+        setMessage("Current location fetch nahi ho pa rahi. HTTPS, browser permission, ya device GPS issue ho sakta hai. Map par pin choose karo.");
       }
     );
+  };
+
+  const handleLocationPick = ({ latitude, longitude }) => {
+    setForm((current) => ({
+      ...current,
+      latitude: String(latitude),
+      longitude: String(longitude)
+    }));
+    setMessage("Map se shop location select ho gayi.");
   };
 
   const handleSubmit = async (e) => {
@@ -203,21 +224,46 @@ function Signup() {
                   <input className="auth-field__input" name="address" placeholder="Full shop address" onChange={handleChange} value={form.address} required={form.role === "presswala"} autoComplete="street-address" />
                 </label>
 
-                <div className="auth-form__split">
-                  <label className="auth-field">
-                    <span className="auth-field__label">Latitude</span>
-                    <input className="auth-field__input" name="latitude" placeholder="28.6139" onChange={handleChange} value={form.latitude} required={form.role === "presswala"} />
-                  </label>
+                <input type="hidden" name="latitude" value={form.latitude} />
+                <input type="hidden" name="longitude" value={form.longitude} />
 
-                  <label className="auth-field">
-                    <span className="auth-field__label">Longitude</span>
-                    <input className="auth-field__input" name="longitude" placeholder="77.2090" onChange={handleChange} value={form.longitude} required={form.role === "presswala"} />
-                  </label>
+                <div className="auth-location-card">
+                  <div className="auth-location-card__head">
+                    <strong>Shop location</strong>
+                    <span>
+                      {form.latitude && form.longitude
+                        ? `Lat ${Number(form.latitude).toFixed(5)}, Lng ${Number(form.longitude).toFixed(5)}`
+                        : "Current location lo ya map par pin choose karo"}
+                    </span>
+                  </div>
+
+                  <div className="auth-location-card__actions">
+                    <button className="auth-form__secondary" type="button" onClick={useCurrentLocation}>
+                      Use current location
+                    </button>
+                    <button
+                      className="auth-form__secondary"
+                      type="button"
+                      onClick={() => setShowLocationPicker((current) => !current)}
+                    >
+                      {showLocationPicker ? "Hide map picker" : "Pick on map"}
+                    </button>
+                  </div>
                 </div>
 
-                <button className="auth-form__secondary" type="button" onClick={useCurrentLocation}>
-                  Use current location
-                </button>
+                {showLocationPicker && (
+                  <div className="auth-location-picker">
+                    <p className="auth-location-picker__hint">Map par exact shop spot par click karo.</p>
+                    <div className="auth-location-picker__map">
+                      <LocationPickerMap
+                        value={form.latitude && form.longitude
+                          ? { latitude: Number(form.latitude), longitude: Number(form.longitude) }
+                          : null}
+                        onChange={handleLocationPick}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="auth-form__split">
                   <label className="auth-field">
