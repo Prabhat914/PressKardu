@@ -8,7 +8,7 @@ import Toast from "../components/Toast";
 import LoadingCards from "../components/LoadingCards";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
-import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection } from "../utils/pressShops";
+import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableShop } from "../utils/pressShops";
 import { getStoredUser } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
 
@@ -128,9 +128,21 @@ function Home() {
       return;
     }
 
+    if (!isBookableShop(selectedShop)) {
+      setOrderMessageTone("warning");
+      setOrderMessage("Ye curated preview shop hai. Live booking ke liye koi real nearby shop select karo.");
+      return;
+    }
+
     if (!localStorage.getItem("token")) {
       setOrderMessageTone("warning");
       setOrderMessage("Please login first to request a press order.");
+      return;
+    }
+
+    if (!orderForm.pickupAddress.trim()) {
+      setOrderMessageTone("warning");
+      setOrderMessage("Pickup address bharna zaroori hai.");
       return;
     }
 
@@ -334,8 +346,16 @@ function Home() {
             key={shop._id || `${shop.shopName}-${index}`}
             shop={shop}
             index={index}
-            actionLabel={isUser ? "Request service" : null}
-            onAction={setSelectedShop}
+            actionLabel={isUser ? (isBookableShop(shop) ? "Request service" : "Preview only") : null}
+            onAction={() => {
+              if (!isBookableShop(shop)) {
+                setOrderMessageTone("warning");
+                setOrderMessage("Curated fallback shops par live booking available nahi hai.");
+                return;
+              }
+              setSelectedShop(shop);
+            }}
+            actionDisabled={!isBookableShop(shop)}
             secondaryActionLabel={openMapShopId === shop._id ? "Hide map" : "Open map"}
             onSecondaryAction={() => setOpenMapShopId((current) => (current === shop._id ? null : shop._id))}
             tertiaryActionLabel="View details"

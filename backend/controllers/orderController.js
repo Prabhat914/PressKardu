@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const PressShop = require("../models/PressShop");
+const mongoose = require("mongoose");
 const { createNotification } = require("../utils/notifications");
 const { addTimelineEvent, applyOrderAutomation } = require("../utils/orderAutomation");
 const { createPaymentSession, buildExpectedSignature } = require("../services/paymentService");
@@ -48,6 +49,10 @@ exports.createOrder = async (req, res) => {
     deliveryTime,
     couponCode
   } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(pressShop)) {
+    return res.status(400).json({ message: "This shop is not available for live booking yet." });
+  }
 
   const shop = await PressShop.findById(pressShop);
 

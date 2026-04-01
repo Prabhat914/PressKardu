@@ -132,6 +132,10 @@ export function buildFallbackShops(location) {
   });
 }
 
+export function isBookableShop(shop) {
+  return typeof shop?._id === "string" && /^[a-f\d]{24}$/i.test(shop._id);
+}
+
 export function normalizeShop(shop, index, userLocation) {
   const coordinates = shop.location?.coordinates;
   const hasCoordinates = Array.isArray(coordinates) && coordinates.length >= 2;
