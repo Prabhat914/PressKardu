@@ -1,0 +1,10 @@
+{
+  "name": "presskardu",
+  "private": true,
+  "scripts": {
+    "dev": "run-dev.cmd",
+    "frontend": "npm --prefix frontend run dev -- --host 0.0.0.0",
+    "backend": "npm --prefix backend start",
+    "smoke": "node scripts/smoke-test.mjs"
+  }
+}

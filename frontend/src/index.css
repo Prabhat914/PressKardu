@@ -1,0 +1,41 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap");
+
+:root {
+  font-family: "Manrope", "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #17302c;
+  background:
+    radial-gradient(circle at top left, rgba(135, 208, 196, 0.16) 0%, rgba(135, 208, 196, 0) 34%),
+    linear-gradient(180deg, #f4fbfa 0%, #eaf4f3 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(135, 208, 196, 0.16) 0%, rgba(135, 208, 196, 0) 34%),
+    radial-gradient(circle at 85% 18%, rgba(17, 107, 98, 0.1), transparent 22%),
+    linear-gradient(180deg, #f4fbfa 0%, #eaf4f3 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

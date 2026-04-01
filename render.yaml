@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: presskardu-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: HOST
+        value: 0.0.0.0
+      - key: ALLOW_DEBUG_OTP
+        value: false
