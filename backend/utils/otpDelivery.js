@@ -27,7 +27,7 @@ function requireValue(value, message) {
   }
 }
 
-async function sendViaResend({ email, otp }) {
+async function sendViaResend({ email, otp, subject, html }) {
   requireValue(process.env.RESEND_API_KEY, "RESEND_API_KEY is not configured");
   requireValue(process.env.RESEND_FROM_EMAIL, "RESEND_FROM_EMAIL is not configured");
 
@@ -36,8 +36,8 @@ async function sendViaResend({ email, otp }) {
     {
       from: process.env.RESEND_FROM_EMAIL,
       to: [email],
-      subject: "PressKardu password reset OTP",
-      html: `<p>Your PressKardu password reset OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
+      subject: subject || "PressKardu verification OTP",
+      html: html || `<p>Your PressKardu OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
     },
     {
       headers: {
@@ -49,7 +49,7 @@ async function sendViaResend({ email, otp }) {
   return { channel: "email", target: email, provider: "resend" };
 }
 
-async function sendViaBrevo({ email, otp }) {
+async function sendViaBrevo({ email, otp, subject, html }) {
   requireValue(process.env.BREVO_API_KEY, "BREVO_API_KEY is not configured");
   requireValue(process.env.BREVO_FROM_EMAIL, "BREVO_FROM_EMAIL is not configured");
 
@@ -61,8 +61,8 @@ async function sendViaBrevo({ email, otp }) {
         name: process.env.BREVO_FROM_NAME || "PressKardu"
       },
       to: [{ email }],
-      subject: "PressKardu password reset OTP",
-      htmlContent: `<p>Your PressKardu password reset OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
+      subject: subject || "PressKardu verification OTP",
+      htmlContent: html || `<p>Your PressKardu OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
     },
     {
       headers: {
@@ -74,7 +74,7 @@ async function sendViaBrevo({ email, otp }) {
   return { channel: "email", target: email, provider: "brevo" };
 }
 
-async function sendViaTwilio({ phone, otp }) {
+async function sendViaTwilio({ phone, otp, message }) {
   requireValue(process.env.TWILIO_ACCOUNT_SID, "TWILIO_ACCOUNT_SID is not configured");
   requireValue(process.env.TWILIO_AUTH_TOKEN, "TWILIO_AUTH_TOKEN is not configured");
   requireValue(process.env.TWILIO_PHONE_NUMBER, "TWILIO_PHONE_NUMBER is not configured");
@@ -82,7 +82,7 @@ async function sendViaTwilio({ phone, otp }) {
   const params = new URLSearchParams({
     To: phone,
     From: process.env.TWILIO_PHONE_NUMBER,
-    Body: `Your PressKardu password reset OTP is ${otp}. It expires in 10 minutes.`
+    Body: message || `Your PressKardu OTP is ${otp}. It expires in 10 minutes.`
   });
 
   const response = await fetch(
@@ -105,12 +105,12 @@ async function sendViaTwilio({ phone, otp }) {
   return { channel: "sms", target: phone, provider: "twilio" };
 }
 
-async function sendViaWebhook({ channel, email, phone, otp }) {
+async function sendViaWebhook({ channel, email, phone, otp, subject, message }) {
   if (channel === "email" && process.env.OTP_EMAIL_WEBHOOK_URL) {
     await postJson(process.env.OTP_EMAIL_WEBHOOK_URL, {
       to: email,
-      subject: "PressKardu password reset OTP",
-      message: `Your PressKardu password reset OTP is ${otp}. It expires in 10 minutes.`
+      subject: subject || "PressKardu verification OTP",
+      message: message || `Your PressKardu OTP is ${otp}. It expires in 10 minutes.`
     });
     return { channel, target: email, provider: "email-webhook" };
   }
@@ -118,7 +118,7 @@ async function sendViaWebhook({ channel, email, phone, otp }) {
   if (channel === "sms" && process.env.OTP_SMS_WEBHOOK_URL) {
     await postJson(process.env.OTP_SMS_WEBHOOK_URL, {
       to: phone,
-      message: `Your PressKardu password reset OTP is ${otp}. It expires in 10 minutes.`
+      message: message || `Your PressKardu OTP is ${otp}. It expires in 10 minutes.`
     });
     return { channel, target: phone, provider: "sms-webhook" };
   }
@@ -127,24 +127,37 @@ async function sendViaWebhook({ channel, email, phone, otp }) {
 }
 
 async function deliverResetOtp({ channel, email, phone, otp }) {
+  return deliverOtp({
+    channel,
+    email,
+    phone,
+    otp,
+    purpose: "password reset"
+  });
+}
+
+async function deliverOtp({ channel, email, phone, otp, purpose = "verification" }) {
   const target = channel === "sms" ? phone : email;
+  const emailSubject = `PressKardu ${purpose} OTP`;
+  const htmlMessage = `<p>Your PressKardu ${purpose} OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`;
+  const textMessage = `Your PressKardu ${purpose} OTP is ${otp}. It expires in 10 minutes.`;
 
   try {
     if (channel === "email") {
       if (process.env.RESEND_API_KEY) {
-        return await sendViaResend({ email, otp });
+        return await sendViaResend({ email, otp, subject: emailSubject, html: htmlMessage });
       }
 
       if (process.env.BREVO_API_KEY) {
-        return await sendViaBrevo({ email, otp });
+        return await sendViaBrevo({ email, otp, subject: emailSubject, html: htmlMessage });
       }
     }
 
     if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
-      return await sendViaTwilio({ phone, otp });
+      return await sendViaTwilio({ phone, otp, message: textMessage });
     }
 
-    const webhookDelivery = await sendViaWebhook({ channel, email, phone, otp });
+    const webhookDelivery = await sendViaWebhook({ channel, email, phone, otp, subject: emailSubject, message: textMessage });
     if (webhookDelivery) {
       return webhookDelivery;
     }
@@ -156,6 +169,38 @@ async function deliverResetOtp({ channel, email, phone, otp }) {
   return { channel, target, provider: "console-fallback" };
 }
 
+function getOtpDeliveryStatus() {
+  return {
+    email: {
+      configured: Boolean(
+        (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) ||
+        (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL) ||
+        process.env.OTP_EMAIL_WEBHOOK_URL
+      ),
+      provider: process.env.RESEND_API_KEY
+        ? "resend"
+        : process.env.BREVO_API_KEY
+        ? "brevo"
+        : process.env.OTP_EMAIL_WEBHOOK_URL
+        ? "email-webhook"
+        : "console-fallback"
+    },
+    sms: {
+      configured: Boolean(
+        (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) ||
+        process.env.OTP_SMS_WEBHOOK_URL
+      ),
+      provider: process.env.TWILIO_ACCOUNT_SID
+        ? "twilio"
+        : process.env.OTP_SMS_WEBHOOK_URL
+        ? "sms-webhook"
+        : "console-fallback"
+    }
+  };
+}
+
 module.exports = {
-  deliverResetOtp
+  deliverOtp,
+  deliverResetOtp,
+  getOtpDeliveryStatus
 };

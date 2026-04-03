@@ -3,7 +3,8 @@
 ## Auth
 
 - Signup as customer works
-- Signup as shopkeeper works with location fields
+- Signup as shopkeeper works with location fields and shop photo
+- Shopkeeper signup requires phone OTP verification
 - Login works for customer
 - Login works for shopkeeper
 - Forgot password works
@@ -32,6 +33,19 @@
 
 - Admin bootstrap account can login
 - Admin overview loads without 403
+- Admin sees OTP provider readiness
+- Admin cannot reject or keep pending without a review note
+- Admin approval notifies the shopkeeper
+- Reported shop stays visible until an admin manually changes its status
+
+## Shop Verification
+
+- New shop stays pending until admin approval
+- Approved shop becomes visible in discovery
+- Rejected shop shows admin note in shopkeeper dashboard
+- Changing shop phone requires OTP verification before save
+- Changing phone/address/map/photo does not auto-pend an already approved shop
+- Re-approval after shop edits works
 
 ## Reliability
 
@@ -45,5 +59,5 @@
 - MongoDB production URI set
 - JWT secret set
 - Razorpay live keys set
-- Resend sender and API key set
-- Twilio account credentials set
+- At least one email OTP provider configured, or fallback accepted explicitly
+- At least one SMS OTP provider configured, or fallback accepted explicitly

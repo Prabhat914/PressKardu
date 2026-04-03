@@ -48,6 +48,8 @@ PAYMENT_CURRENCY=INR
 PAYMENT_WEBHOOK_SECRET=
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
+PHONE_OTP_COOLDOWN_SECONDS=45
+PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 ```
 
 If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set, a default admin account is bootstrapped automatically on backend startup.
@@ -80,10 +82,13 @@ This checks:
 - signup
 - login
 - authenticated order fetch
+- phone OTP request/verify when `ALLOW_DEBUG_OTP=true`
+- shopkeeper signup + admin approval when debug OTP and admin credentials are available
 
 ## Notes
 
 - OTP delivery falls back to console logs if no provider is configured.
+- `/api/health` now reports OTP provider readiness so you can confirm whether email/SMS is using a real provider or console fallback.
 - Online payment flow now supports Razorpay order creation plus backend-side signature verification.
 - For deployment steps and production env guidance, see [DEPLOYMENT.md](C:\Users\moto g\OneDrive\Desktop\PressKardu\DEPLOYMENT.md).
 - Final manual release checks are listed in [QA_CHECKLIST.md](C:\Users\moto g\OneDrive\Desktop\PressKardu\QA_CHECKLIST.md).

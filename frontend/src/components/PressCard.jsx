@@ -40,12 +40,14 @@ function PressCard({
   const bannerTone = shop.isFeatured ? "press-card__banner--featured" : "press-card__banner--standard";
   const logoSource = shop.logo || shop.logoUrl || "";
   const shopInitials = getShopInitials(shop.shopName);
+  const onlinePreferred = Boolean(shop.marketplaceSignals?.onlinePreferred);
+  const onlineConversionScore = Number(shop.marketplaceSignals?.onlineConversionScore || 0);
 
   return (
     <article className={`press-card ${className}`.trim()} style={style}>
       <div className="press-card__glow" aria-hidden="true" />
       <div className={`press-card__banner ${bannerTone}`}>
-        <span>{shop.isFeatured ? "Featured partner" : "Local pickup ready"}</span>
+        <span>{onlinePreferred ? "Online preferred" : shop.isFeatured ? "Featured partner" : "Local pickup ready"}</span>
         <button
           className={`press-card__favorite${isFavorite ? " press-card__favorite--active" : ""}`}
           type="button"
@@ -87,7 +89,14 @@ function PressCard({
         <span>{rating === "New" ? "Fresh on PressKardu" : `${rating} rating`}</span>
         <span>{shop.pricePerCloth ? "Transparent pricing" : "Quick quote"}</span>
         <span>{reviewCount > 0 ? `${reviewCount} reviews` : "New reviews coming in"}</span>
+        {onlinePreferred && <span>{onlineConversionScore}% online acceptance</span>}
       </div>
+
+      {onlinePreferred && (
+        <div className="auth-card__message">
+          Online payments, prepaid priority support, and order protection available.
+        </div>
+      )}
 
       <div className="press-card__details">
         <div>

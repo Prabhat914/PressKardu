@@ -53,6 +53,9 @@ function OrderCard({ order, isShopkeeper, onUpdate }) {
         <p><strong>Payment:</strong> {order.paymentMode} / {order.paymentStatus}</p>
         {order.paymentMethod && <p><strong>Method:</strong> {order.paymentMethod}</p>}
         <p><strong>Total:</strong> Rs. {order.totalPrice}</p>
+        <p><strong>Plan:</strong> {order.subscriptionPlanSnapshot || "basic"}</p>
+        {typeof order.pricing?.platformFee === "number" && <p><strong>Platform fee:</strong> Rs. {order.pricing.platformFee}</p>}
+        {typeof order.pricing?.shopEarning === "number" && <p><strong>Shop earning:</strong> Rs. {order.pricing.shopEarning}</p>}
         {order.clothType && <p><strong>Cloth type:</strong> {order.clothType}</p>}
         {order.serviceType && <p><strong>Service:</strong> {order.serviceType}</p>}
         {(order.pickupDate || order.pickupTime) && <p><strong>Pickup slot:</strong> {[order.pickupDate, order.pickupTime].filter(Boolean).join(" at ")}</p>}

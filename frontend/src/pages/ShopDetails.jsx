@@ -16,6 +16,12 @@ function ShopDetails() {
   const [shop, setShop] = useState(null);
   const [message, setMessage] = useState("");
   const [favoriteIds, setFavoriteIds] = useState(getFavoriteShopIds());
+  const [reportForm, setReportForm] = useState({
+    reason: "",
+    reporterName: "",
+    reporterContact: ""
+  });
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     const loadShop = async () => {
@@ -51,6 +57,25 @@ function ShopDetails() {
         { authorName: "Sneha", rating: 4, comment: "Good communication, neat fold, and clear pricing." },
         { authorName: "Ritika", rating: 5, comment: "Best option for wedding wear and urgent next-day finish." }
       ];
+
+  const handleReportSubmit = async (event) => {
+    event.preventDefault();
+    setReporting(true);
+
+    try {
+      const res = await API.post(`/press/${shop._id}/report`, reportForm);
+      setMessage(res.data.message || "Shop reported for review.");
+      setReportForm({
+        reason: "",
+        reporterName: "",
+        reporterContact: ""
+      });
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Report submit nahi ho paaya."));
+    } finally {
+      setReporting(false);
+    }
+  };
 
   return (
     <main className="shop-details-page">
@@ -133,6 +158,49 @@ function ShopDetails() {
               </article>
             ))}
           </div>
+        </article>
+      </section>
+
+      <section className="dashboard-grid">
+        <article className="dashboard-card dashboard-card--wide">
+          <p className="dashboard-eyebrow">Safety</p>
+          <h2>Report fake or mismatched shop details</h2>
+          <form className="auth-form" onSubmit={handleReportSubmit}>
+            <label className="auth-field">
+              <span className="auth-field__label">What looks wrong?</span>
+              <input
+                className="auth-field__input"
+                value={reportForm.reason}
+                onChange={(event) => setReportForm((current) => ({ ...current, reason: event.target.value }))}
+                placeholder="Example: shop does not exist at this address"
+                required
+                minLength={10}
+              />
+            </label>
+            <div className="auth-form__split">
+              <label className="auth-field">
+                <span className="auth-field__label">Your name</span>
+                <input
+                  className="auth-field__input"
+                  value={reportForm.reporterName}
+                  onChange={(event) => setReportForm((current) => ({ ...current, reporterName: event.target.value }))}
+                  placeholder="Optional"
+                />
+              </label>
+              <label className="auth-field">
+                <span className="auth-field__label">Contact</span>
+                <input
+                  className="auth-field__input"
+                  value={reportForm.reporterContact}
+                  onChange={(event) => setReportForm((current) => ({ ...current, reporterContact: event.target.value }))}
+                  placeholder="Optional email or phone"
+                />
+              </label>
+            </div>
+            <button type="submit" disabled={reporting}>
+              {reporting ? "Submitting..." : "Report this shop"}
+            </button>
+          </form>
         </article>
       </section>
     </main>

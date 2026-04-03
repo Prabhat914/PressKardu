@@ -22,6 +22,158 @@ const pressShopSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  phoneVerifiedAt: Date,
+  subscriptionPlan: {
+    type: String,
+    enum: ["basic", "pro", "premium"],
+    default: "basic"
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ["active", "pending", "inactive", "expired"],
+    default: "active"
+  },
+  subscriptionPaymentMode: {
+    type: String,
+    enum: ["free", "online", "offline"],
+    default: "free"
+  },
+  subscriptionAmount: {
+    type: Number,
+    default: 0
+  },
+  subscriptionStartedAt: Date,
+  subscriptionExpiresAt: Date,
+  pendingSubscription: {
+    planId: {
+      type: String,
+      enum: ["basic", "pro", "premium"]
+    },
+    paymentMode: {
+      type: String,
+      enum: ["online", "offline"]
+    },
+    amount: Number,
+    requestedAt: Date,
+    gatewayOrderId: String
+  },
+  subscriptionHistory: {
+    type: [
+      {
+        planId: {
+          type: String,
+          enum: ["basic", "pro", "premium"]
+        },
+        status: {
+          type: String,
+          trim: true
+        },
+        paymentMode: {
+          type: String,
+          enum: ["free", "online", "offline"]
+        },
+        amount: Number,
+        notes: {
+          type: String,
+          trim: true
+        },
+        actor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    default: []
+  },
+  shopPhotoDataUrl: {
+    type: String,
+    trim: true
+  },
+  shopPhotoReviewed: {
+    type: Boolean,
+    default: false
+  },
+  verificationStatus: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+    index: true
+  },
+  verificationNotes: {
+    type: String,
+    trim: true
+  },
+  verificationSubmittedAt: {
+    type: Date,
+    default: Date.now
+  },
+  verificationReviewedAt: Date,
+  verificationReviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  verificationHistory: {
+    type: [
+      {
+        status: {
+          type: String,
+          enum: ["pending", "approved", "rejected"]
+        },
+        notes: {
+          type: String,
+          trim: true
+        },
+        source: {
+          type: String,
+          trim: true
+        },
+        actor: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    default: []
+  },
+  reportCount: {
+    type: Number,
+    default: 0
+  },
+  reports: {
+    type: [
+      {
+        reason: {
+          type: String,
+          trim: true
+        },
+        reporterName: {
+          type: String,
+          trim: true
+        },
+        reporterContact: {
+          type: String,
+          trim: true
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    default: []
+  },
+  fraudSignals: {
+    type: [String],
+    default: []
+  },
   address: {
     type: String,
     required: true,

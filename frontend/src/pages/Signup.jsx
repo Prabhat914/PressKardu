@@ -23,19 +23,123 @@ function Signup() {
     latitude: "",
     longitude: "",
     pricePerCloth: "",
-    serviceRadiusKm: "5"
+    serviceRadiusKm: "5",
+    shopPhotoDataUrl: "",
+    phoneOtp: "",
+    phoneOtpVerified: false
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpMeta, setOtpMeta] = useState({ retryAfterSeconds: 0, provider: "" });
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const lastResolvedAddressRef = useRef("");
 
+  useEffect(() => {
+    if (otpMeta.retryAfterSeconds <= 0) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setOtpMeta((current) => ({
+        ...current,
+        retryAfterSeconds: Math.max(0, current.retryAfterSeconds - 1)
+      }));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [otpMeta.retryAfterSeconds]);
+
   const handleChange = (e) => {
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
+      ...(e.target.name === "phone" ? { phoneOtpVerified: false } : {})
     });
+  };
+
+  const handleShopPhotoChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setForm((current) => ({ ...current, shopPhotoDataUrl: "" }));
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Shop photo ke liye image file choose karo.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm((current) => ({
+        ...current,
+        shopPhotoDataUrl: typeof reader.result === "string" ? reader.result : ""
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendPhoneOtp = async () => {
+    if (!form.phone.trim()) {
+      setMessage("Pehle phone number enter karo.");
+      return;
+    }
+
+    try {
+      setOtpSending(true);
+      const res = await API.post("/auth/phone-verification/send-otp", {
+        phone: form.phone
+      });
+      setOtpMeta({
+        retryAfterSeconds: Number(res.data.retryAfterSeconds || 0),
+        provider: res.data.delivery?.provider || ""
+      });
+      setMessage(res.data.deliveryHint || res.data.message || "OTP sent.");
+    } catch (error) {
+      setOtpMeta({
+        retryAfterSeconds: Number(error?.response?.data?.retryAfterSeconds || 0),
+        provider: ""
+      });
+      setMessage(getApiErrorMessage(error, "Phone OTP bhejna possible nahi hua."));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!form.phone.trim() || !form.phoneOtp.trim()) {
+      setMessage("Phone number aur OTP dono enter karo.");
+      return;
+    }
+
+    try {
+      setOtpVerifying(true);
+      const res = await API.post("/auth/phone-verification/verify-otp", {
+        phone: form.phone,
+        otp: form.phoneOtp
+      });
+      setForm((current) => ({
+        ...current,
+        phoneOtpVerified: true
+      }));
+      setOtpMeta((current) => ({
+        ...current,
+        retryAfterSeconds: 0
+      }));
+      setMessage(res.data.message || "Phone verified.");
+    } catch (error) {
+      setForm((current) => ({
+        ...current,
+        phoneOtpVerified: false
+      }));
+      setMessage(getApiErrorMessage(error, "Phone OTP verify nahi hua."));
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
   const useCurrentLocation = () => {
@@ -157,7 +261,7 @@ function Signup() {
 
       const res = await API.post("/auth/signup", payload);
       saveSession({ token: res.data.token, user: res.data.user });
-      setMessage("Signup completed successfully.");
+      setMessage(res.data.message || "Signup completed successfully.");
       navigate(res.data.user.role === "presswala" ? "/shops" : "/");
     } catch (error) {
       console.error("Error signing up:", error);
@@ -225,6 +329,11 @@ function Signup() {
           <p className="auth-card__copy">
             Choose your account type and complete the setup in one flow.
           </p>
+          {form.role === "presswala" && (
+            <p className="auth-card__message">
+              New shop listings stay hidden until an admin reviews the address, phone, and map pin.
+            </p>
+          )}
 
           <div className="auth-card__mini-stats" aria-hidden="true">
             <article>
@@ -270,7 +379,7 @@ function Signup() {
 
               <label className="auth-field">
                 <span className="auth-field__label">Phone</span>
-                <input className="auth-field__input" name="phone" placeholder="Mobile number" onChange={handleChange} value={form.phone} autoComplete="tel" />
+                <input className="auth-field__input" name="phone" placeholder="Mobile number" onChange={handleChange} value={form.phone} autoComplete="tel" required={form.role === "presswala"} />
               </label>
             </div>
 
@@ -286,10 +395,45 @@ function Signup() {
                   <input className="auth-field__input" name="shopName" placeholder="Press shop name" onChange={handleChange} value={form.shopName} required={form.role === "presswala"} />
                 </label>
 
+                <div className="auth-form__split">
+                  <label className="auth-field">
+                    <span className="auth-field__label">Phone OTP</span>
+                    <input className="auth-field__input" name="phoneOtp" placeholder="Enter OTP" onChange={handleChange} value={form.phoneOtp} required={form.role === "presswala"} />
+                  </label>
+                  <div className="auth-location-card">
+                    <div className="auth-location-card__head">
+                      <strong>{form.phoneOtpVerified ? "Phone verified" : "Verify phone"}</strong>
+                      <span>{form.phoneOtpVerified ? "OTP verified for this shop phone number." : "Send OTP to confirm the shopkeeper phone number."}</span>
+                    </div>
+                    {!form.phoneOtpVerified && otpMeta.retryAfterSeconds > 0 && (
+                      <p className="auth-card__message">
+                        Resend unlocks in {otpMeta.retryAfterSeconds}s.
+                      </p>
+                    )}
+                    {!form.phoneOtpVerified && otpMeta.provider && (
+                      <p className="auth-card__message">
+                        Current delivery route: {otpMeta.provider}.
+                      </p>
+                    )}
+                    <div className="auth-location-card__actions">
+                      <button className="auth-form__secondary" type="button" onClick={handleSendPhoneOtp} disabled={otpSending || otpMeta.retryAfterSeconds > 0}>
+                        {otpSending ? "Sending..." : "Send OTP"}
+                      </button>
+                      <button className="auth-form__secondary" type="button" onClick={handleVerifyPhoneOtp} disabled={otpVerifying}>
+                        {otpVerifying ? "Verifying..." : "Verify OTP"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <label className="auth-field">
                   <span className="auth-field__label">Shop address</span>
                   <input className="auth-field__input" name="address" placeholder="Full shop address" onChange={handleChange} value={form.address} required={form.role === "presswala"} autoComplete="street-address" />
                 </label>
+
+                <p className="auth-card__message">
+                  Use the exact shop address and select the real location on the map. Wrong or fake locations are kept pending or rejected.
+                </p>
 
                 <input type="hidden" name="latitude" value={form.latitude} />
                 <input type="hidden" name="longitude" value={form.longitude} />
@@ -345,6 +489,17 @@ function Signup() {
                     <input className="auth-field__input" name="serviceRadiusKm" type="number" min="1" placeholder="5" onChange={handleChange} value={form.serviceRadiusKm} />
                   </label>
                 </div>
+
+                <label className="auth-field">
+                  <span className="auth-field__label">Shop photo</span>
+                  <input className="auth-field__input" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleShopPhotoChange} required={form.role === "presswala"} />
+                </label>
+                {form.shopPhotoDataUrl && (
+                  <div className="auth-location-picker">
+                    <p className="auth-location-picker__hint">Shop photo preview for admin review.</p>
+                    <img src={form.shopPhotoDataUrl} alt="Shop preview" style={{ width: "100%", maxHeight: "240px", objectFit: "cover", borderRadius: "20px" }} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -362,7 +517,7 @@ function Signup() {
               />
             </label>
 
-            <button type="submit" disabled={loading}>
+            <button type="submit" disabled={loading || (form.role === "presswala" && !form.phoneOtpVerified)}>
               {loading ? "Creating account..." : "Signup"}
             </button>
           </form>

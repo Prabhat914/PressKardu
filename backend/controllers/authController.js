@@ -1,15 +1,141 @@
 const User = require("../models/User");
 const PressShop = require("../models/PressShop");
+const PhoneVerificationSession = require("../models/PhoneVerificationSession");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
-const { deliverResetOtp } = require("../utils/otpDelivery");
+const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
+const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
 const RESET_TOKEN_EXPIRY_MINUTES = Number(process.env.RESET_TOKEN_EXPIRY_MINUTES || 15);
 const MAX_OTP_ATTEMPTS = Number(process.env.MAX_OTP_ATTEMPTS || 5);
 const SHOULD_EXPOSE_DEBUG_OTP =
     process.env.NODE_ENV !== "production" && process.env.ALLOW_DEBUG_OTP === "true";
+const PHONE_OTP_COOLDOWN_SECONDS = Number(process.env.PHONE_OTP_COOLDOWN_SECONDS || 45);
+
+const assessFraudSignals = ({ address, latitude, longitude, phone, serviceRadiusKm }) => {
+    const signals = [];
+    const cleanedAddress = String(address || "").trim();
+    const cleanedPhone = String(phone || "").replace(/\D/g, "");
+
+    if (cleanedAddress.length < 12) {
+        signals.push("Address is too short for manual verification");
+    }
+
+    if (!cleanedPhone || cleanedPhone.length < 10) {
+        signals.push("Phone number is missing or incomplete");
+    }
+
+    if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
+        signals.push("Map coordinates are invalid");
+    }
+
+    if (serviceRadiusKm && Number(serviceRadiusKm) > 30) {
+        signals.push("Service radius is unusually large");
+    }
+
+    return signals;
+};
+
+function isValidShopPhotoDataUrl(value) {
+    return /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(value || ""));
+}
+
+exports.sendPhoneVerificationOtp = async (req, res) => {
+    const normalizedPhone = normalizePhone(req.body.phone);
+
+    if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
+        return res.status(400).json({ message: "Valid phone number is required" });
+    }
+
+    const existingSession = await PhoneVerificationSession.findOne({ phone: normalizedPhone });
+    if (existingSession?.lastSentAt) {
+        const secondsSinceLastSend = Math.floor((Date.now() - new Date(existingSession.lastSentAt).getTime()) / 1000);
+        if (secondsSinceLastSend < PHONE_OTP_COOLDOWN_SECONDS) {
+            return res.status(429).json({
+                message: `Please wait ${PHONE_OTP_COOLDOWN_SECONDS - secondsSinceLastSend} seconds before requesting another OTP.`,
+                retryAfterSeconds: PHONE_OTP_COOLDOWN_SECONDS - secondsSinceLastSend
+            });
+        }
+    }
+
+    const otp = generateOtp();
+    const otpExpiresAt = new Date(Date.now() + PHONE_OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await PhoneVerificationSession.findOneAndUpdate(
+        { phone: normalizedPhone },
+        {
+            phone: normalizedPhone,
+            otpHash: hashValue(otp),
+            otpExpiresAt,
+            verifiedAt: undefined,
+            consumedAt: undefined,
+            attempts: 0,
+            lastSentAt: new Date(),
+            purpose: "shop-signup"
+        },
+        {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true
+        }
+    );
+
+    const delivery = await deliverOtp({
+        channel: "sms",
+        phone: normalizedPhone,
+        otp,
+        purpose: "phone verification"
+    });
+
+    res.json({
+        message: "Phone verification OTP sent.",
+        delivery,
+        deliveryHint: delivery.provider === "console-fallback"
+            ? "No SMS provider is configured yet, so the OTP is available in backend logs."
+            : `OTP sent via ${delivery.provider}.`,
+        ...(SHOULD_EXPOSE_DEBUG_OTP ? { debugOtp: otp } : {})
+    });
+};
+
+exports.verifyPhoneVerificationOtp = async (req, res) => {
+    const normalizedPhone = normalizePhone(req.body.phone);
+    const otp = String(req.body.otp || "").trim();
+    const session = await PhoneVerificationSession.findOne({ phone: normalizedPhone });
+
+    if (!session || !session.otpHash || !session.otpExpiresAt) {
+        return res.status(400).json({ message: "OTP session not found. Request a new OTP." });
+    }
+
+    if (session.attempts >= MAX_OTP_ATTEMPTS) {
+        return res.status(429).json({ message: "Too many invalid OTP attempts. Request a new OTP." });
+    }
+
+    if (session.consumedAt) {
+        return res.status(400).json({ message: "OTP session already used. Request a new OTP." });
+    }
+
+    if (new Date(session.otpExpiresAt) < new Date()) {
+        return res.status(400).json({ message: "OTP has expired. Request a new OTP." });
+    }
+
+    if (hashValue(otp) !== session.otpHash) {
+        session.attempts = (session.attempts || 0) + 1;
+        await session.save();
+        return res.status(400).json({ message: "Invalid OTP." });
+    }
+
+    session.verifiedAt = new Date();
+    session.attempts = 0;
+    await session.save();
+
+    res.json({
+        message: "Phone number verified successfully.",
+        phone: normalizedPhone,
+        verifiedAt: session.verifiedAt
+    });
+};
 
 const buildAuthResponse = async (user) => {
     const safeUser = {
@@ -93,44 +219,112 @@ exports.signup = async (req, res)=>{
     }
 
     if (role === "presswala") {
-        if (!shopName || !address || latitude === undefined || longitude === undefined) {
+        if (!shopName || !address || latitude === undefined || longitude === undefined || !phone) {
             return res.status(400).json({
-                message: "Shop name, address, latitude and longitude are required for shopkeepers"
+                message: "Shop name, phone, address, latitude and longitude are required for shopkeepers"
             });
+        }
+
+        if (!req.body.phoneOtpVerified) {
+            return res.status(400).json({ message: "Phone OTP verification is required for shopkeepers" });
+        }
+
+        if (!req.body.shopPhotoDataUrl || !isValidShopPhotoDataUrl(req.body.shopPhotoDataUrl)) {
+            return res.status(400).json({ message: "A valid shop photo is required for shopkeepers" });
+        }
+    }
+
+    const normalizedPhone = role === "presswala" ? normalizePhone(phone) : normalizePhone(phone);
+    const duplicatePhoneUser = normalizedPhone
+        ? await User.findOne({ phone: normalizedPhone })
+        : null;
+
+    if (duplicatePhoneUser) {
+        return res.status(400).json({ message: "Phone number is already linked to another account" });
+    }
+
+    if (role === "presswala") {
+        const duplicateShopPhone = await PressShop.findOne({ phone: normalizedPhone });
+        if (duplicateShopPhone) {
+            return res.status(400).json({ message: "Phone number is already linked to another shop" });
+        }
+
+        const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
+
+        if (!phoneVerification || phoneVerification.consumedAt) {
+            return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
         }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-        name,
-        email: normalizedEmail,
-        phone,
-        role,
-        password : hashedPassword
-    });
-
+    let user;
     let pressShop = null;
 
-    if (role === "presswala") {
-        pressShop = await PressShop.create({
-            ownerUser: user._id,
-            shopName,
-            ownerName: name,
-            phone,
-            address,
-            location: {
-                type: "Point",
-                coordinates: [Number(longitude), Number(latitude)]
-            },
-            pricePerCloth: pricePerCloth ? Number(pricePerCloth) : undefined,
-            serviceRadiusKm: serviceRadiusKm ? Number(serviceRadiusKm) : undefined,
-            specialty: req.body.specialty,
-            eta: req.body.eta,
-            pickupWindow: req.body.pickupWindow,
-            services: Array.isArray(req.body.services) ? req.body.services : [],
-            about: req.body.about
+    try {
+        user = await User.create({
+            name,
+            email: normalizedEmail,
+            phone: normalizedPhone || undefined,
+            role,
+            password : hashedPassword
         });
+
+        if (role === "presswala") {
+            const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
+
+            if (!phoneVerification || phoneVerification.consumedAt) {
+                await User.deleteOne({ _id: user._id });
+                return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
+            }
+
+            const fraudSignals = assessFraudSignals({
+                address,
+                latitude,
+                longitude,
+                phone: normalizedPhone,
+                serviceRadiusKm
+            });
+
+            pressShop = await PressShop.create({
+                ownerUser: user._id,
+                shopName,
+                ownerName: name,
+                phone: normalizedPhone,
+                phoneVerifiedAt: phoneVerification.verifiedAt,
+                shopPhotoDataUrl: req.body.shopPhotoDataUrl,
+                verificationStatus: "pending",
+                verificationSubmittedAt: new Date(),
+                verificationHistory: [
+                    {
+                        status: "pending",
+                        notes: "Shop submitted and awaiting admin verification.",
+                        source: "signup",
+                        createdAt: new Date()
+                    }
+                ],
+                fraudSignals,
+                address,
+                location: {
+                    type: "Point",
+                    coordinates: [Number(longitude), Number(latitude)]
+                },
+                pricePerCloth: pricePerCloth ? Number(pricePerCloth) : undefined,
+                serviceRadiusKm: serviceRadiusKm ? Number(serviceRadiusKm) : undefined,
+                specialty: req.body.specialty,
+                eta: req.body.eta,
+                pickupWindow: req.body.pickupWindow,
+                services: Array.isArray(req.body.services) ? req.body.services : [],
+                about: req.body.about
+            });
+
+            phoneVerification.consumedAt = new Date();
+            await phoneVerification.save();
+        }
+    } catch (error) {
+        if (user?._id && role === "presswala" && !pressShop) {
+            await User.deleteOne({ _id: user._id });
+        }
+        throw error;
     }
 
     const token = jwt.sign(
@@ -148,7 +342,10 @@ exports.signup = async (req, res)=>{
             phone: user.phone,
             role: user.role
         },
-        pressShop
+        pressShop,
+        message: role === "presswala"
+            ? "Account created. Your shop is pending admin verification before it appears publicly."
+            : "Account created successfully."
     });
 };
 

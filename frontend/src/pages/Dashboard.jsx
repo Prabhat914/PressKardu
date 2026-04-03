@@ -5,6 +5,7 @@ import { getApiErrorMessage } from "../utils/apiError";
 import { buildFallbackShops, enrichShopCollection, DEFAULT_LOCATION } from "../utils/pressShops";
 import { getStatusLabel } from "../utils/orderMeta";
 import { getFavoriteShopIds, getStoredUser, saveSession } from "../utils/session";
+import { startHostedPayment } from "../utils/payment";
 
 function Dashboard() {
   const initialUser = getStoredUser();
@@ -15,6 +16,11 @@ function Dashboard() {
   const [message, setMessage] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [paymentCapabilities, setPaymentCapabilities] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState("");
   const [profileForm, setProfileForm] = useState({
     name: initialUser?.name || "",
     phone: initialUser?.phone || "",
@@ -28,7 +34,14 @@ function Dashboard() {
     serviceRadiusKm: "",
     latitude: "",
     longitude: "",
-    services: ""
+    services: "",
+    verificationStatus: "",
+    verificationNotes: "",
+    fraudSignals: "",
+    shopPhotoDataUrl: "",
+    phoneVerifiedAt: "",
+    phoneOtp: "",
+    phoneOtpVerified: false
   });
 
   useEffect(() => {
@@ -88,8 +101,17 @@ function Dashboard() {
           serviceRadiusKm: profile.pressShop?.serviceRadiusKm ?? "",
           latitude: profile.pressShop?.location?.coordinates?.[1] ?? "",
           longitude: profile.pressShop?.location?.coordinates?.[0] ?? "",
-          services: Array.isArray(profile.pressShop?.services) ? profile.pressShop.services.join(", ") : ""
+          services: Array.isArray(profile.pressShop?.services) ? profile.pressShop.services.join(", ") : "",
+          verificationStatus: profile.pressShop?.verificationStatus || "",
+          verificationNotes: profile.pressShop?.verificationNotes || "",
+          fraudSignals: Array.isArray(profile.pressShop?.fraudSignals) ? profile.pressShop.fraudSignals.join(" | ") : "",
+          shopPhotoDataUrl: profile.pressShop?.shopPhotoDataUrl || "",
+          phoneVerifiedAt: profile.pressShop?.phoneVerifiedAt || "",
+          phoneOtp: "",
+          phoneOtpVerified: false
         });
+        setSubscriptionPlans(Array.isArray(profile.subscriptionPlans) ? profile.subscriptionPlans : []);
+        setPaymentCapabilities(profile.paymentCapabilities || null);
       } catch (error) {
         setProfileMessage(getApiErrorMessage(error, "Profile details load nahi ho paaye."));
       }
@@ -102,8 +124,56 @@ function Dashboard() {
     const { name, value } = event.target;
     setProfileForm((current) => ({
       ...current,
-      [name]: value
+      [name]: value,
+      ...(name === "phone" ? { phoneOtpVerified: false } : {})
     }));
+  };
+
+  const handleSendPhoneOtp = async () => {
+    if (!profileForm.phone.trim()) {
+      setProfileMessage("Phone number enter karo, phir OTP bhejo.");
+      return;
+    }
+
+    try {
+      setOtpSending(true);
+      const res = await API.post("/auth/phone-verification/send-otp", {
+        phone: profileForm.phone
+      });
+      setProfileMessage(res.data.deliveryHint || res.data.message || "OTP sent.");
+    } catch (error) {
+      setProfileMessage(getApiErrorMessage(error, "Phone OTP bhejna possible nahi hua."));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!profileForm.phone.trim() || !profileForm.phoneOtp.trim()) {
+      setProfileMessage("Phone number aur OTP dono enter karo.");
+      return;
+    }
+
+    try {
+      setOtpVerifying(true);
+      const res = await API.post("/auth/phone-verification/verify-otp", {
+        phone: profileForm.phone,
+        otp: profileForm.phoneOtp
+      });
+      setProfileForm((current) => ({
+        ...current,
+        phoneOtpVerified: true
+      }));
+      setProfileMessage(res.data.message || "Phone verified.");
+    } catch (error) {
+      setProfileForm((current) => ({
+        ...current,
+        phoneOtpVerified: false
+      }));
+      setProfileMessage(getApiErrorMessage(error, "Phone OTP verify nahi hua."));
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
   const handleProfileSave = async (event) => {
@@ -136,12 +206,24 @@ function Dashboard() {
       const res = await API.put("/user/profile", payload);
       setCurrentUser(res.data.user);
       saveSession({ user: res.data.user });
+      setPaymentCapabilities(res.data.paymentCapabilities || paymentCapabilities);
       setProfileForm((current) => ({
         ...current,
         name: res.data.user?.name || current.name,
-        phone: res.data.user?.phone || ""
+        phone: res.data.user?.phone || "",
+        verificationStatus: res.data.pressShop?.verificationStatus || current.verificationStatus,
+        verificationNotes: res.data.pressShop?.verificationNotes || "",
+        fraudSignals: Array.isArray(res.data.pressShop?.fraudSignals) ? res.data.pressShop.fraudSignals.join(" | ") : current.fraudSignals,
+        shopPhotoDataUrl: res.data.pressShop?.shopPhotoDataUrl || current.shopPhotoDataUrl,
+        phoneVerifiedAt: res.data.pressShop?.phoneVerifiedAt || current.phoneVerifiedAt,
+        phoneOtp: "",
+        phoneOtpVerified: false
       }));
-      setProfileMessage("Profile updated successfully.");
+      setProfileMessage(
+        res.data.pressShop?.verificationStatus === "pending"
+          ? "Profile updated. Shop abhi pending state me hi hai."
+          : "Profile updated successfully. Approved shops auto-pending me wapas nahi jayengi."
+      );
     } catch (error) {
       setProfileMessage(getApiErrorMessage(error, "Profile update nahi ho paaya."));
     } finally {
@@ -155,6 +237,65 @@ function Dashboard() {
   const completedOrders = orders.filter((order) => order.status === "completed");
   const totalSpend = orders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
   const referralCode = `${(currentUser?.name || "PRESS").slice(0, 5).toUpperCase()}20`;
+  const phoneNeedsVerification = currentUser?.role === "presswala" && profileForm.phone.trim() !== (currentUser?.phone || "").trim();
+  const onlineOrders = orders.filter((order) => order.paymentMode === "online");
+  const offlineOrders = orders.filter((order) => order.paymentMode === "offline");
+  const onlineRatio = orders.length > 0 ? Math.round((onlineOrders.length / orders.length) * 100) : 0;
+  const loyaltyPoints = orders.reduce((sum, order) => sum + Number(order.customerBenefits?.loyaltyPointsEarned || 0), 0);
+  const currentPlanId = paymentCapabilities?.subscription?.plan?.id || "basic";
+  const currentPlanConfig = subscriptionPlans.find((plan) => plan.id === currentPlanId);
+  const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const currentMonthCount = orders.filter((order) => {
+    if (!order?.createdAt) {
+      return false;
+    }
+
+    return new Date(order.createdAt) >= currentMonthStart && !["cancelled", "rejected"].includes(order.status);
+  }).length;
+  const currentPlanOrderLimit = Number(currentPlanConfig?.monthlyOrderLimit || 0);
+  const currentPlanRemainingOrders = currentPlanOrderLimit > 0 ? Math.max(0, currentPlanOrderLimit - currentMonthCount) : null;
+
+  const handleSubscriptionChange = async (planId, paymentMode) => {
+    try {
+      setSubscriptionLoading(`${planId}:${paymentMode}`);
+      const res = await API.put("/user/subscription", {
+        planId,
+        paymentMode
+      });
+
+      if (paymentMode === "online" && res.data.paymentSession) {
+        await startHostedPayment({
+          session: res.data.paymentSession,
+          customer: currentUser,
+          onSuccess: async (paymentResult) => {
+            await API.post("/user/subscription/verify-payment", {
+              gatewayOrderId: paymentResult.razorpay_order_id,
+              gatewayPaymentId: paymentResult.razorpay_payment_id,
+              signature: paymentResult.razorpay_signature
+            });
+          }
+        });
+
+        const profileRes = await API.get("/user/profile");
+        setCurrentUser(profileRes.data.user);
+        saveSession({ user: profileRes.data.user });
+        setPaymentCapabilities(profileRes.data.paymentCapabilities || null);
+        setSubscriptionPlans(Array.isArray(profileRes.data.subscriptionPlans) ? profileRes.data.subscriptionPlans : []);
+        setProfileForm((current) => ({
+          ...current,
+          verificationStatus: profileRes.data.pressShop?.verificationStatus || current.verificationStatus
+        }));
+        setProfileMessage("Subscription payment verified and plan activated.");
+      } else {
+        setPaymentCapabilities(res.data.paymentCapabilities || null);
+        setProfileMessage(res.data.message || "Subscription updated.");
+      }
+    } catch (error) {
+      setProfileMessage(getApiErrorMessage(error, "Subscription update nahi ho paaya."));
+    } finally {
+      setSubscriptionLoading("");
+    }
+  };
 
   return (
     <main className="dashboard-page">
@@ -165,6 +306,11 @@ function Dashboard() {
           <p>
             Track orders, notifications, savings, and your preferred shops without leaving PressKardu.
           </p>
+          {currentUser?.role === "presswala" && (
+            <p className="auth-card__message">
+              Shop status: {profileForm.verificationStatus || "pending"}
+            </p>
+          )}
         </div>
         <div className="dashboard-hero__cta">
           <Link className="home-shops__link" to={currentUser?.role === "presswala" ? "/orders" : "/shops"}>
@@ -191,6 +337,19 @@ function Dashboard() {
           <strong>Rs. {totalSpend}</strong>
           <p>{currentUser?.role === "presswala" ? "Revenue tracked from your current order feed." : "Amount spent across your orders so far."}</p>
         </article>
+        {currentUser?.role === "presswala" ? (
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Online ratio</span>
+            <strong>{onlineRatio}%</strong>
+            <p>Higher online payment acceptance improves ranking and payout priority.</p>
+          </article>
+        ) : (
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Loyalty points</span>
+            <strong>{loyaltyPoints}</strong>
+            <p>Prepaid online orders earn points and stronger order protection.</p>
+          </article>
+        )}
       </section>
 
       <section className="dashboard-grid">
@@ -235,6 +394,71 @@ function Dashboard() {
       </section>
 
       <section className="dashboard-grid">
+        {currentUser?.role === "presswala" && (
+          <article className="dashboard-card dashboard-card--wide">
+            <p className="dashboard-eyebrow">Subscription</p>
+            <h2>Plan and payment access</h2>
+            <p className="auth-card__message">
+              Current plan: <strong>{paymentCapabilities?.subscription?.plan?.name || "Basic"}</strong>
+              {paymentCapabilities?.subscription?.expiresAt
+                ? ` | Active till ${new Date(paymentCapabilities.subscription.expiresAt).toLocaleDateString()}`
+                : " | Free plan"}
+            </p>
+            {currentPlanOrderLimit > 0 && (
+              <p className="auth-card__message">
+                Basic usage this month: <strong>{currentMonthCount}/{currentPlanOrderLimit}</strong>
+                {` | ${currentPlanRemainingOrders} order slots remaining`}
+              </p>
+            )}
+            <div className="offer-stack">
+              {subscriptionPlans.map((plan) => {
+                const isCurrentPlan = paymentCapabilities?.subscription?.plan?.id === plan.id;
+                return (
+                  <div key={plan.id} className="offer-card">
+                    <strong>{plan.name}</strong>
+                    <span>{plan.monthlyPrice === 0 ? "Free" : `Rs. ${plan.monthlyPrice}/month`}</span>
+                    <span>{plan.supportsOnlinePayments ? "Online + offline payments" : "Offline payments only"}</span>
+                    <span>{plan.orderLimitLabel}</span>
+                    <span>{plan.monthlyOrderLimit ? `${plan.monthlyOrderLimit} active orders per month` : "No monthly order cap"}</span>
+                    <span>{plan.supportsOnlinePayments ? "Better ranking from online adoption" : "No online conversion boost"}</span>
+                    <div className="auth-location-card__actions">
+                      {plan.id === "basic" ? (
+                        <button
+                          type="button"
+                          className="auth-form__secondary"
+                          disabled={subscriptionLoading === `${plan.id}:free` || isCurrentPlan}
+                          onClick={() => handleSubscriptionChange("basic", "free")}
+                        >
+                          {isCurrentPlan ? "Current plan" : "Switch to Basic"}
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="auth-form__secondary"
+                            disabled={Boolean(subscriptionLoading)}
+                            onClick={() => handleSubscriptionChange(plan.id, "online")}
+                          >
+                            {subscriptionLoading === `${plan.id}:online` ? "Opening..." : "Pay online"}
+                          </button>
+                          <button
+                            type="button"
+                            className="auth-form__secondary"
+                            disabled={Boolean(subscriptionLoading)}
+                            onClick={() => handleSubscriptionChange(plan.id, "offline")}
+                          >
+                            {subscriptionLoading === `${plan.id}:offline` ? "Requesting..." : "Request offline"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        )}
+
         <article className="dashboard-card dashboard-card--wide">
           <p className="dashboard-eyebrow">Profile</p>
           <h2>{currentUser?.role === "presswala" ? "Account and shop settings" : "Account settings"}</h2>
@@ -263,6 +487,42 @@ function Dashboard() {
                   </label>
                 </div>
 
+                <p className="auth-card__message">
+                  Public status: <strong>{profileForm.verificationStatus || "pending"}</strong>
+                  {profileForm.verificationNotes ? ` | ${profileForm.verificationNotes}` : ""}
+                </p>
+                {profileForm.fraudSignals && (
+                  <p className="auth-card__message">Review flags: {profileForm.fraudSignals}</p>
+                )}
+                {profileForm.phoneVerifiedAt && (
+                  <p className="auth-card__message">Phone verified on: {new Date(profileForm.phoneVerifiedAt).toLocaleString()}</p>
+                )}
+                {phoneNeedsVerification && (
+                  <div className="auth-location-card">
+                    <div className="auth-location-card__head">
+                      <strong>{profileForm.phoneOtpVerified ? "New phone verified" : "Verify new phone"}</strong>
+                      <span>Phone number badalne ke baad save se pehle OTP verify karna zaroori hai.</span>
+                    </div>
+                    <div className="auth-form__split">
+                      <label className="auth-field">
+                        <span className="auth-field__label">OTP</span>
+                        <input className="auth-field__input" name="phoneOtp" value={profileForm.phoneOtp} onChange={handleProfileChange} placeholder="Enter OTP" />
+                      </label>
+                    </div>
+                    <div className="auth-location-card__actions">
+                      <button className="auth-form__secondary" type="button" onClick={handleSendPhoneOtp} disabled={otpSending}>
+                        {otpSending ? "Sending..." : "Send OTP"}
+                      </button>
+                      <button className="auth-form__secondary" type="button" onClick={handleVerifyPhoneOtp} disabled={otpVerifying}>
+                        {otpVerifying ? "Verifying..." : "Verify OTP"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {profileForm.shopPhotoDataUrl && (
+                  <img src={profileForm.shopPhotoDataUrl} alt="Shop" style={{ width: "100%", maxHeight: "220px", objectFit: "cover", borderRadius: "20px", marginBottom: "1rem" }} />
+                )}
+
                 <div className="auth-form__split">
                   <label className="auth-field">
                     <span className="auth-field__label">Price per cloth</span>
@@ -284,6 +544,10 @@ function Dashboard() {
                     <input className="auth-field__input" name="longitude" value={profileForm.longitude} onChange={handleProfileChange} />
                   </label>
                 </div>
+
+                <p className="auth-card__message">
+                  Changing phone, address, ya map coordinates ab shop ko auto-pending me nahi bhejega. Admin chahe to manual review kar sakta hai.
+                </p>
 
                 <div className="auth-form__split">
                   <label className="auth-field">
@@ -312,7 +576,7 @@ function Dashboard() {
             )}
 
             {profileMessage && <p className="auth-card__message">{profileMessage}</p>}
-            <button type="submit" disabled={savingProfile}>
+            <button type="submit" disabled={savingProfile || (phoneNeedsVerification && !profileForm.phoneOtpVerified)}>
               {savingProfile ? "Saving..." : "Save profile"}
             </button>
           </form>
@@ -352,6 +616,26 @@ function Dashboard() {
             )}
           </div>
         </article>
+        {currentUser?.role === "presswala" && (
+          <article className="dashboard-card">
+            <p className="dashboard-eyebrow">Adoption</p>
+            <h2>Payment behavior</h2>
+            <div className="offer-stack">
+              <div className="offer-card">
+                <strong>{onlineOrders.length}</strong>
+                <span>Online orders with ranking and priority benefits.</span>
+              </div>
+              <div className="offer-card">
+                <strong>{offlineOrders.length}</strong>
+                <span>Offline orders stay allowed but do not improve featured visibility.</span>
+              </div>
+              <div className="offer-card">
+                <strong>{paymentCapabilities?.subscription?.plan?.name || "Basic"}</strong>
+                <span>{onlineRatio >= 45 ? "Strong online adoption keeps you competitive." : "Grow prepaid orders to improve ranking."}</span>
+              </div>
+            </div>
+          </article>
+        )}
       </section>
     </main>
   );

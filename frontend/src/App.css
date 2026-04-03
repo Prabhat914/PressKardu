@@ -133,6 +133,80 @@ body {
   justify-content: flex-end;
 }
 
+.site-nav__search {
+  position: relative;
+}
+
+.site-nav__icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(17, 107, 98, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--brand-strong);
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.site-nav__icon-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(17, 107, 98, 0.12);
+}
+
+.site-nav__icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.site-nav__search-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: min(360px, calc(100vw - 32px));
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 253, 249, 0.96);
+  border: 1px solid rgba(17, 107, 98, 0.12);
+  box-shadow: 0 18px 34px rgba(18, 62, 57, 0.14);
+  backdrop-filter: blur(14px);
+  animation: revealMap 220ms var(--ease-premium);
+}
+
+.site-nav__search-input {
+  flex: 1;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid rgba(17, 107, 98, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-strong);
+}
+
+.site-nav__search-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(17, 107, 98, 0.12);
+}
+
+.site-nav__search-input::placeholder {
+  color: #90a19c;
+}
+
+.site-nav__search-submit {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--brand-strong), var(--brand-bright));
+  color: #fffaf2;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .site-nav__user {
   display: grid;
   text-align: right;
@@ -2629,6 +2703,12 @@ body {
   .site-nav__links,
   .site-nav__actions {
     justify-content: center;
+  }
+
+  .site-nav__search-panel {
+    right: 50%;
+    transform: translateX(50%);
+    min-width: min(420px, calc(100vw - 40px));
   }
 
   .auth-form__split {

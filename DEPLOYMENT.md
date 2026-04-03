@@ -70,7 +70,8 @@ Render setup steps:
    - `TWILIO_*`, or
    - webhook URLs
 7. Keep `ALLOW_DEBUG_OTP=false` in production.
-8. Set `CORS_ORIGIN` to the frontend domain that should be allowed.
+8. Set `PHONE_OTP_COOLDOWN_SECONDS` and `PHONE_VERIFICATION_MAX_AGE_MINUTES` to match your verification policy.
+9. Set `CORS_ORIGIN` to the frontend domain that should be allowed.
 
 Recommended backend start command:
 
@@ -98,12 +99,14 @@ node scripts/smoke-test.mjs
 
 3. Manually verify:
    - signup
+   - shopkeeper phone OTP and pending approval
    - login
    - forgot password
    - nearby shops
    - order create
    - order status update
    - admin overview
+   - admin approve/reject/pending with notes
 
 ## Suggested Production Env
 
@@ -122,6 +125,8 @@ ALLOW_DEBUG_OTP=false
 PAYMENT_PROVIDER=manual-signature
 PAYMENT_CURRENCY=INR
 PAYMENT_WEBHOOK_SECRET=<gateway-secret>
+PHONE_OTP_COOLDOWN_SECONDS=45
+PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 ```
 
 Frontend:

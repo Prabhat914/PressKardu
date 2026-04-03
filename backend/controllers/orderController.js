@@ -4,9 +4,50 @@ const mongoose = require("mongoose");
 const { createNotification } = require("../utils/notifications");
 const { addTimelineEvent, applyOrderAutomation } = require("../utils/orderAutomation");
 const { createPaymentSession, buildExpectedSignature } = require("../services/paymentService");
+const { getShopPaymentCapabilities, buildOrderPricing } = require("../utils/subscription");
 
 const PICKUP_GRACE_HOURS = Number(process.env.PICKUP_GRACE_HOURS || 4);
+const OFFLINE_PAYMENT_FEE = Number(process.env.OFFLINE_PAYMENT_FEE || 10);
 const allowedStatuses = new Set(["pending", "accepted", "picked_up", "pressed", "delivered", "completed", "cancelled", "rejected", "reschedule_requested"]);
+const quotaExcludedStatuses = ["cancelled", "rejected"];
+
+function getCurrentMonthWindow() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return { monthStart, nextMonthStart };
+}
+
+function calculateCustomerBenefits({ couponCode, paymentMode, subtotal, isRepeatCustomer }) {
+  const normalizedCoupon = String(couponCode || "").trim().toUpperCase();
+  let discount = 0;
+  let appliedCouponCode = "";
+  let codFee = 0;
+
+  if (paymentMode === "online") {
+    if (normalizedCoupon === "WELCOME20" && subtotal >= 199) {
+      discount = Math.min(Math.round(subtotal * 0.2), 120);
+      appliedCouponCode = normalizedCoupon;
+    } else if (normalizedCoupon === "FESTIVEPRESS" && subtotal >= 249) {
+      discount = 40;
+      appliedCouponCode = normalizedCoupon;
+    } else if (normalizedCoupon === "REBOOK10" && isRepeatCustomer) {
+      discount = Math.min(Math.round(subtotal * 0.1), 60);
+      appliedCouponCode = normalizedCoupon;
+    }
+  } else {
+    codFee = OFFLINE_PAYMENT_FEE;
+  }
+
+  return {
+    appliedCouponCode,
+    discount,
+    codFee,
+    loyaltyPointsEarned: paymentMode === "online" ? Math.max(5, Math.round((subtotal - discount) / 50)) : 0,
+    prepaidPrioritySupport: paymentMode === "online",
+    orderProtection: paymentMode === "online"
+  };
+}
 
 async function syncAutomations(orders) {
   let changed = false;
@@ -60,6 +101,10 @@ exports.createOrder = async (req, res) => {
     return res.status(404).json({ message: "Press shop not found" });
   }
 
+  if (shop.verificationStatus !== "approved") {
+    return res.status(400).json({ message: "This shop is not approved for live bookings yet." });
+  }
+
   const itemCount = Number(clothesCount);
 
   if (!Number.isFinite(itemCount) || itemCount < 1) {
@@ -75,7 +120,56 @@ exports.createOrder = async (req, res) => {
   }
 
   const pricePerCloth = Number(shop.pricePerCloth || 0);
-  const totalPrice = itemCount * pricePerCloth;
+  const subtotal = itemCount * pricePerCloth;
+  const paymentSelection = paymentMode || "offline";
+  const capabilities = getShopPaymentCapabilities(shop);
+
+  if (paymentSelection === "online" && !capabilities.supportsOnlinePayments) {
+    return res.status(400).json({ message: "This shop's current plan does not support online payments yet." });
+  }
+
+  if (paymentSelection === "offline" && !capabilities.supportsOfflinePayments) {
+    return res.status(400).json({ message: "This shop cannot accept offline payments with the current plan." });
+  }
+
+  const monthlyOrderLimit = Number(capabilities.subscription?.plan?.monthlyOrderLimit || 0);
+
+  if (monthlyOrderLimit > 0) {
+    const { monthStart, nextMonthStart } = getCurrentMonthWindow();
+    const currentMonthOrderCount = await Order.countDocuments({
+      pressShop: shop._id,
+      createdAt: {
+        $gte: monthStart,
+        $lt: nextMonthStart
+      },
+      status: { $nin: quotaExcludedStatuses }
+    });
+
+    if (currentMonthOrderCount >= monthlyOrderLimit) {
+      return res.status(400).json({
+        message: `This Basic plan shop has reached its ${monthlyOrderLimit} active orders limit for this month. Upgrade to Pro or Premium to keep taking more orders.`
+      });
+    }
+  }
+
+  const previousCompletedOrder = await Order.findOne({
+    user: req.user.id,
+    status: "completed"
+  }).select("_id");
+
+  const benefits = calculateCustomerBenefits({
+    couponCode,
+    paymentMode: paymentSelection,
+    subtotal,
+    isRepeatCustomer: Boolean(previousCompletedOrder)
+  });
+  const totalPrice = Math.max(0, subtotal - benefits.discount + benefits.codFee);
+
+  const pricing = buildOrderPricing({
+    totalPrice,
+    paymentMode: paymentSelection,
+    shop
+  });
 
   const draftOrder = new Order({
     user: req.user.id,
@@ -89,10 +183,27 @@ exports.createOrder = async (req, res) => {
     pickupTime,
     deliveryDate,
     deliveryTime,
-    paymentMode: paymentMode || "offline",
+    paymentMode: paymentSelection,
     paymentMethod: paymentMethod || "cash",
     couponCode,
-    totalPrice
+    totalPrice,
+    payoutStatus: paymentSelection === "online" ? "pending" : "not_applicable",
+    subscriptionPlanSnapshot: pricing.planId,
+    pricing: {
+      subtotal: pricing.subtotal,
+      discount: benefits.discount,
+      codFee: benefits.codFee,
+      platformFee: pricing.platformFee,
+      shopEarning: pricing.shopEarning,
+      commissionRate: pricing.commissionRate
+    },
+    customerBenefits: {
+      appliedCouponCode: benefits.appliedCouponCode,
+      loyaltyPointsEarned: benefits.loyaltyPointsEarned,
+      repeatCustomer: Boolean(previousCompletedOrder),
+      prepaidPrioritySupport: benefits.prepaidPrioritySupport,
+      orderProtection: benefits.orderProtection
+    }
   });
   const paymentSession = await createPaymentSession(draftOrder);
 
@@ -113,7 +224,7 @@ exports.createOrder = async (req, res) => {
       user: shop.ownerUser,
       order: order._id,
       title: "New order request received",
-      body: `A new pickup request has been created for ${itemCount} clothes.`,
+      body: `A new pickup request has been created for ${itemCount} clothes.${paymentSelection === "online" ? " Prepaid order, so give it priority support." : ""}`,
       type: "order",
       metadata: { status: order.status }
     });
@@ -312,6 +423,7 @@ exports.verifyPaymentSignature = async (req, res) => {
     signature,
     verifiedAt: new Date()
   };
+  order.payoutStatus = "pending";
   addTimelineEvent(order, "payment_verified", "Payment verified");
   await order.save();
 

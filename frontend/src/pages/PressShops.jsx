@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PressCard from "../components/PressCard";
 import Map from "../components/Map";
 import LazyPressScene from "../components/LazyPressScene";
@@ -11,6 +11,7 @@ import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection } from "../u
 
 function PressShops() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [shops, setShops] = useState([]);
   const [allShops, setAllShops] = useState([]);
   const [location, setLocation] = useState(DEFAULT_LOCATION);
@@ -18,12 +19,14 @@ function PressShops() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [locationReady, setLocationReady] = useState(false);
   const [filters, setFilters] = useState({
     q: "",
     service: "all",
     sortBy: "rating",
     maxPrice: "all"
   });
+  const externalQuery = searchParams.get("q")?.trim() || "";
 
   const applyShopCollection = (incoming, nextLocation, nextStatus) => {
     const enriched = enrichShopCollection(incoming, nextLocation);
@@ -50,6 +53,7 @@ function PressShops() {
     setLocation(nextLocation);
     applyShopCollection(buildFallbackShops(nextLocation), nextLocation, message);
     setLoading(false);
+    setLocationReady(true);
   };
 
   const loadNearbyShops = async (nextLocation) => {
@@ -81,39 +85,11 @@ function PressShops() {
       );
     } finally {
       setLoading(false);
+      setLocationReady(true);
     }
   };
 
-  useEffect(() => {
-
-    if (!navigator.geolocation) {
-      fallbackToShops(DEFAULT_LOCATION, "Showing curated press shops because location access is not supported in this browser.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const nextLocation = [lat, lng];
-        setLocation(nextLocation);
-        loadNearbyShops(nextLocation);
-      },
-      () => {
-        fallbackToShops(DEFAULT_LOCATION, "Location permission was denied, so curated press shops are shown around the default service zone.");
-      }
-    );
-  }, []);
-
-  const handleSearchSubmit = async (event) => {
-    event.preventDefault();
-
-    const query = filters.q.trim();
-    if (!query) {
-      await loadNearbyShops(location);
-      return;
-    }
-
+  const searchShops = async (query) => {
     setSearching(true);
     setLoading(true);
 
@@ -138,11 +114,65 @@ function PressShops() {
     }
   };
 
+  useEffect(() => {
+
+    if (!navigator.geolocation) {
+      fallbackToShops(DEFAULT_LOCATION, "Showing curated press shops because location access is not supported in this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const nextLocation = [lat, lng];
+        setLocation(nextLocation);
+
+        if (externalQuery) {
+          setLocationReady(true);
+          return;
+        }
+
+        loadNearbyShops(nextLocation);
+      },
+      () => {
+        fallbackToShops(DEFAULT_LOCATION, "Location permission was denied, so curated press shops are shown around the default service zone.");
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!locationReady || !externalQuery) {
+      return;
+    }
+
+    setFilters((current) => ({
+      ...current,
+      q: externalQuery
+    }));
+
+    searchShops(externalQuery);
+  }, [externalQuery, locationReady]);
+
+  const handleSearchSubmit = async (event) => {
+    event.preventDefault();
+
+    const query = filters.q.trim();
+    if (!query) {
+      setSearchParams({});
+      await loadNearbyShops(location);
+      return;
+    }
+
+    setSearchParams({ q: query });
+  };
+
   const handleResetToNearby = async () => {
     setFilters((current) => ({
       ...current,
       q: ""
     }));
+    setSearchParams({});
     await loadNearbyShops(location);
   };
 

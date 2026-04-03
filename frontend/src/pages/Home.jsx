@@ -12,6 +12,41 @@ import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableS
 import { getStoredUser } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
 
+function shopSupportsOnlinePayments(shop) {
+  return ["pro", "premium"].includes(String(shop?.subscriptionPlan || "").toLowerCase()) && shop?.subscriptionStatus === "active";
+}
+
+function estimateOrderBenefits(selectedShop, orderForm) {
+  const subtotal = Number(orderForm.clothesCount || 0) * Number(selectedShop?.pricePerCloth || 0);
+  const code = String(orderForm.couponCode || "").trim().toUpperCase();
+  let discount = 0;
+  let note = "Offline orders do not get coupons or loyalty rewards.";
+
+  if (orderForm.paymentMode === "online") {
+    if (code === "WELCOME20" && subtotal >= 199) {
+      discount = Math.min(Math.round(subtotal * 0.2), 120);
+      note = "WELCOME20 applied for online prepaid checkout.";
+    } else if (code === "FESTIVEPRESS" && subtotal >= 249) {
+      discount = 40;
+      note = "FESTIVEPRESS applied for online prepaid checkout.";
+    } else if (code === "REBOOK10") {
+      discount = Math.min(Math.round(subtotal * 0.1), 60);
+      note = "REBOOK10 works for repeat prepaid orders.";
+    } else {
+      note = "Online prepaid orders get loyalty points, priority support, and order protection.";
+    }
+  }
+
+  const codFee = orderForm.paymentMode === "offline" ? 10 : 0;
+  return {
+    subtotal,
+    discount,
+    codFee,
+    estimatedTotal: Math.max(0, subtotal - discount + codFee),
+    note
+  };
+}
+
 function Home() {
   const navigate = useNavigate();
   const [shops, setShops] = useState([]);
@@ -60,6 +95,7 @@ function Home() {
       .toLowerCase()
       .includes(shopSearch.trim().toLowerCase())
   );
+  const orderEstimate = selectedShop ? estimateOrderBenefits(selectedShop, orderForm) : null;
 
   useEffect(() => {
     if (shops.length < 2) {
@@ -224,6 +260,10 @@ function Home() {
     setPaymentStage(orderForm.paymentMode === "online" ? "processing" : "idle");
 
     try {
+      if (orderForm.paymentMode === "online" && !shopSupportsOnlinePayments(selectedShop)) {
+        throw new Error("Selected shop abhi online payments support nahi karta. Offline payment choose karo ya Pro/Premium shop select karo.");
+      }
+
       const res = await API.post("/orders", {
         pressShop: selectedShop._id,
         clothesCount: Number(orderForm.clothesCount),
@@ -494,7 +534,7 @@ function Home() {
         </p>
       )}
 
-      {selectedShop && (
+          {selectedShop && (
         <section ref={requestFormRef} className={`order-request${paymentStage !== "idle" ? ` order-request--${paymentStage}` : ""}`}>
           <div className="order-request__ambient" aria-hidden="true" />
           <div>
@@ -506,6 +546,11 @@ function Home() {
           </div>
 
           <form className="order-request__form" onSubmit={handleRequestOrder}>
+            {!shopSupportsOnlinePayments(selectedShop) && (
+              <p className="auth-card__message">
+                Ye shop abhi offline payments accept karta hai. Online checkout ke liye Pro ya Premium subscribed shop chahiye.
+              </p>
+            )}
             <div className="order-request__split">
               <label>
                 <span>Clothes count</span>
@@ -516,10 +561,25 @@ function Home() {
                 <span>Payment mode</span>
                 <select name="paymentMode" value={orderForm.paymentMode} onChange={handleOrderChange}>
                   <option value="offline">Offline</option>
-                  <option value="online">Online</option>
+                  <option value="online" disabled={!shopSupportsOnlinePayments(selectedShop)}>Online</option>
                 </select>
               </label>
             </div>
+
+            {orderEstimate && (
+              <div className="auth-location-card">
+                <div className="auth-location-card__head">
+                  <strong>Payment summary</strong>
+                  <span>{orderEstimate.note}</span>
+                </div>
+                <div className="press-card__highlights">
+                  <span>Subtotal Rs. {orderEstimate.subtotal}</span>
+                  <span>Discount Rs. {orderEstimate.discount}</span>
+                  <span>COD fee Rs. {orderEstimate.codFee}</span>
+                  <span>Estimated total Rs. {orderEstimate.estimatedTotal}</span>
+                </div>
+              </div>
+            )}
 
             <div className="order-request__split">
               <label>
@@ -581,7 +641,7 @@ function Home() {
               </label>
               <label>
                 <span>Coupon code</span>
-                <input name="couponCode" placeholder="WELCOME20" value={orderForm.couponCode} onChange={handleOrderChange} />
+                <input name="couponCode" placeholder={orderForm.paymentMode === "online" ? "WELCOME20 / FESTIVEPRESS / REBOOK10" : "Coupons are online only"} value={orderForm.couponCode} onChange={handleOrderChange} />
               </label>
             </div>
 

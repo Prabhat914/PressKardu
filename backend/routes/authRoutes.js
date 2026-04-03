@@ -1,7 +1,7 @@
 const express = require("express");
 const router =  express.Router();
 const { body, validationResult } = require("express-validator");
-const { signup, login, forgotPassword, verifyResetOtp, resetPassword} = require("../controllers/authController");
+const { signup, login, forgotPassword, verifyResetOtp, resetPassword, sendPhoneVerificationOtp, verifyPhoneVerificationOtp } = require("../controllers/authController");
 
 const validateRequest = (req, res, next) => {
     const errors = validationResult(req);
@@ -23,6 +23,15 @@ router.post("/signup",
     body("role").optional().isIn(["user", "presswala"]).withMessage("Invalid role"),
     validateRequest,
     signup);
+router.post("/phone-verification/send-otp",
+    body("phone").trim().isLength({ min: 10, max: 15 }).withMessage("Phone must be between 10 and 15 digits"),
+    validateRequest,
+    sendPhoneVerificationOtp);
+router.post("/phone-verification/verify-otp",
+    body("phone").trim().isLength({ min: 10, max: 15 }).withMessage("Phone must be between 10 and 15 digits"),
+    body("otp").trim().isLength({ min: 4, max: 8 }).withMessage("Valid OTP is required"),
+    validateRequest,
+    verifyPhoneVerificationOtp);
 router.post("/login",
     body("email").isEmail().withMessage("Valid email is required"),
     body("password").trim().notEmpty().withMessage("Password is required"),

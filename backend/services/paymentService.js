@@ -97,8 +97,38 @@ function buildExpectedSignature({ gatewayOrderId, gatewayPaymentId }) {
     .digest("hex");
 }
 
+async function createSubscriptionPaymentSession({ shopId, amount, receipt }) {
+  if (!Number(amount)) {
+    return null;
+  }
+
+  const provider = getPaymentProvider();
+
+  if (provider === "razorpay") {
+    return createRazorpayOrder({
+      _id: receipt || shopId,
+      totalPrice: amount,
+      pressShop: shopId
+    });
+  }
+
+  const gatewayOrderId = `pk_subscription_${shopId}_${Date.now()}`;
+
+  return {
+    provider,
+    gatewayOrderId,
+    amount: toSubunits(amount),
+    currency: getPaymentCurrency(),
+    internalOrderId: String(shopId),
+    verificationMode: "signature",
+    description: "PressKardu shop subscription payment",
+    message: "Complete subscription payment and verify it with gateway order id, payment id, and signature."
+  };
+}
+
 module.exports = {
   createPaymentSession,
+  createSubscriptionPaymentSession,
   buildExpectedSignature,
   getPaymentSecret,
   getPaymentProvider

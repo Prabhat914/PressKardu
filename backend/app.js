@@ -9,6 +9,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
+const { getOtpDeliveryStatus } = require("./utils/otpDelivery");
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || "")
@@ -46,13 +47,14 @@ app.use(cors({
     },
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 app.use(morgan("dev"));
 app.get("/api/health", (req, res) => {
     res.json({
         status: mongoose.connection.readyState === 1 ? "ok" : "degraded",
-        database: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+        database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+        otpProviders: getOtpDeliveryStatus()
     });
 });
 

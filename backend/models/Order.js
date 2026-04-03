@@ -89,6 +89,64 @@ const orderSchema = new mongoose.Schema({
         },
         verifiedAt: Date
     },
+    payoutStatus: {
+        type: String,
+        enum: ["pending", "not_applicable", "settled"],
+        default: "not_applicable"
+    },
+    subscriptionPlanSnapshot: {
+        type: String,
+        enum: ["basic", "pro", "premium"],
+        default: "basic"
+    },
+    pricing: {
+        subtotal: {
+            type: Number,
+            default: 0
+        },
+        discount: {
+            type: Number,
+            default: 0
+        },
+        codFee: {
+            type: Number,
+            default: 0
+        },
+        platformFee: {
+            type: Number,
+            default: 0
+        },
+        shopEarning: {
+            type: Number,
+            default: 0
+        },
+        commissionRate: {
+            type: Number,
+            default: 0
+        }
+    },
+    customerBenefits: {
+        appliedCouponCode: {
+            type: String,
+            trim: true
+        },
+        loyaltyPointsEarned: {
+            type: Number,
+            default: 0
+        },
+        repeatCustomer: {
+            type: Boolean,
+            default: false
+        },
+        prepaidPrioritySupport: {
+            type: Boolean,
+            default: false
+        },
+        orderProtection: {
+            type: Boolean,
+            default: false
+        }
+    },
     status : {
         type : String,
         enum : ["pending", "accepted", "picked_up", "pressed", "delivered", "completed", "cancelled", "rejected", "reschedule_requested"],

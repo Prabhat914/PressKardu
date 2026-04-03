@@ -7,7 +7,8 @@ const {
   createPressShop,
   getPressShops,
   getNearbyPressShops,
-  getPressShopById
+  getPressShopById,
+  reportPressShop
 } = require("../controllers/pressController");
 
 const validateRequest = (req, res, next) => {
@@ -34,6 +35,12 @@ router.post("/create",
   createPressShop);
 router.get("/", getPressShops);
 router.get("/nearby", getNearbyPressShops);
+router.post("/:id/report",
+  body("reason").trim().isLength({ min: 10 }).withMessage("Report reason must be at least 10 characters"),
+  body("reporterName").optional({ values: "falsy" }).trim().isLength({ max: 80 }).withMessage("Reporter name is too long"),
+  body("reporterContact").optional({ values: "falsy" }).trim().isLength({ max: 120 }).withMessage("Reporter contact is too long"),
+  validateRequest,
+  reportPressShop);
 router.get("/:id", getPressShopById);
 
 module.exports = router;
