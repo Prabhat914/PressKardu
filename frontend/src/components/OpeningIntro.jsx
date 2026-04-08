@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import LazyOpeningScene from "./LazyOpeningScene";
 
 function OpeningIntro({
   title = "Doorstep press service, now with a more cinematic welcome.",
@@ -44,40 +45,7 @@ function OpeningIntro({
       <div className={`opening-stage${introSeen ? " opening-stage--fast" : ""}`} aria-hidden="true">
         <div className="opening-stage__glow opening-stage__glow--left" />
         <div className="opening-stage__glow opening-stage__glow--right" />
-
-        <div className="opening-stage__floor" />
-
-        <div className="opening-stage__table">
-          <div className="opening-stage__table-top" />
-          <div className="opening-stage__table-leg opening-stage__table-leg--left" />
-          <div className="opening-stage__table-leg opening-stage__table-leg--right" />
-        </div>
-
-        <div className="opening-stage__cloth">
-          <span className="opening-stage__cloth-shine" />
-          <span className="opening-stage__cloth-fold opening-stage__cloth-fold--one" />
-          <span className="opening-stage__cloth-fold opening-stage__cloth-fold--two" />
-        </div>
-
-        <div className="opening-stage__iron">
-          <div className="opening-stage__iron-handle" />
-          <div className="opening-stage__iron-base" />
-          <div className="opening-stage__iron-steam">
-            <span />
-            <span />
-            <span />
-          </div>
-        </div>
-
-        <div className="opening-stage__person">
-          <div className="opening-stage__person-head" />
-          <div className="opening-stage__person-body" />
-          <div className="opening-stage__person-hand" />
-          <div className="opening-stage__person-arm opening-stage__person-arm--front" />
-          <div className="opening-stage__person-arm opening-stage__person-arm--back" />
-          <div className="opening-stage__person-leg opening-stage__person-leg--front" />
-          <div className="opening-stage__person-leg opening-stage__person-leg--back" />
-        </div>
+        <LazyOpeningScene fast={introSeen} />
       </div>
 
       <div className="opening-intro__controls">

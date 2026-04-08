@@ -129,20 +129,20 @@ function Home() {
         const incomingShops = Array.isArray(res.data) ? res.data : [];
 
         if (incomingShops.length === 0) {
-          setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
-          setStatus("Abhi live shops add nahi hue hain, isliye curated partners dikh rahe hain.");
+          setShops([]);
+          setStatus("Abhi koi approved live shop available nahi hai.");
         } else {
           setShops(enrichShopCollection(incomingShops, userLocation));
           setStatus("Shopkeeper ke added live shops yahan dikh rahe hain. Current location add karke nearby shops dekh sakte ho.");
         }
       } catch (requestError) {
         console.log(requestError);
-        setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
+        setShops([]);
         setStatus(
-          `${getApiErrorMessage(
+          getApiErrorMessage(
             requestError,
             "Live shops API unavailable hai."
-          )} Curated partners are being shown on the home page.`
+          )
         );
       } finally {
         setLoading(false);
@@ -174,8 +174,8 @@ function Home() {
           const incomingShops = Array.isArray(res.data) ? res.data : [];
 
           if (incomingShops.length === 0) {
-            setShops(enrichShopCollection(buildFallbackShops(nextLocation), nextLocation));
-            setStatus("Aapke nearby live shops nahi mile, isliye curated partners dikh rahe hain.");
+            setShops([]);
+            setStatus("Aapke nearby koi approved live shop nahi mila.");
           } else {
             setShops(enrichShopCollection(incomingShops, nextLocation));
             setStatus("Aapke current location ke nearby shops dikh rahe hain.");
@@ -208,8 +208,8 @@ function Home() {
       const incomingShops = Array.isArray(res.data) ? res.data : [];
 
       if (incomingShops.length === 0) {
-        setShops(enrichShopCollection(buildFallbackShops(DEFAULT_LOCATION), DEFAULT_LOCATION));
-        setStatus("Abhi live shops add nahi hue hain, isliye curated partners dikh rahe hain.");
+        setShops([]);
+        setStatus("Abhi koi approved live shop available nahi hai.");
       } else {
         setShops(enrichShopCollection(incomingShops, userLocation));
         setStatus("All live shops dikh rahe hain. Current location add karke nearby shops par switch kar sakte ho.");

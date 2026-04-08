@@ -75,13 +75,15 @@ function PressShops() {
       }
     } catch (requestError) {
       console.log(requestError);
-      applyShopCollection(
-        buildFallbackShops(nextLocation),
-        nextLocation,
-        `${getApiErrorMessage(
+      setAllShops([]);
+      setShops([]);
+      setLocation(nextLocation);
+      setMapCenter(nextLocation);
+      setStatus(
+        getApiErrorMessage(
           requestError,
           "Nearby API is unavailable right now."
-        )} Curated press shops are being shown.`
+        )
       );
     } finally {
       setLoading(false);
@@ -107,6 +109,8 @@ function PressShops() {
       }
     } catch (requestError) {
       console.log(requestError);
+      setAllShops([]);
+      setShops([]);
       setStatus(getApiErrorMessage(requestError, "Search complete nahi ho paayi. Thoda baad try karo."));
     } finally {
       setLoading(false);
