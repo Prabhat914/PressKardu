@@ -6,6 +6,7 @@ import { buildFallbackShops, enrichShopCollection, DEFAULT_LOCATION } from "../u
 import { getStatusLabel } from "../utils/orderMeta";
 import { getFavoriteShopIds, getStoredUser, saveSession } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
+import Toast from "../components/Toast";
 
 function Dashboard() {
   const initialUser = getStoredUser();
@@ -15,6 +16,7 @@ function Dashboard() {
   const [notifications, setNotifications] = useState([]);
   const [message, setMessage] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
+  const [subscriptionMessage, setSubscriptionMessage] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -43,6 +45,41 @@ function Dashboard() {
     phoneOtp: "",
     phoneOtpVerified: false
   });
+
+  const applyProfilePayload = (profile) => {
+    setCurrentUser(profile.user);
+    saveSession({ user: profile.user });
+    setProfileForm({
+      name: profile.user?.name || "",
+      phone: profile.user?.phone || "",
+      shopName: profile.pressShop?.shopName || "",
+      address: profile.pressShop?.address || "",
+      specialty: profile.pressShop?.specialty || "",
+      eta: profile.pressShop?.eta || "",
+      pickupWindow: profile.pressShop?.pickupWindow || "",
+      about: profile.pressShop?.about || "",
+      pricePerCloth: profile.pressShop?.pricePerCloth ?? "",
+      serviceRadiusKm: profile.pressShop?.serviceRadiusKm ?? "",
+      latitude: profile.pressShop?.location?.coordinates?.[1] ?? "",
+      longitude: profile.pressShop?.location?.coordinates?.[0] ?? "",
+      services: Array.isArray(profile.pressShop?.services) ? profile.pressShop.services.join(", ") : "",
+      verificationStatus: profile.pressShop?.verificationStatus || "",
+      verificationNotes: profile.pressShop?.verificationNotes || "",
+      fraudSignals: Array.isArray(profile.pressShop?.fraudSignals) ? profile.pressShop.fraudSignals.join(" | ") : "",
+      shopPhotoDataUrl: profile.pressShop?.shopPhotoDataUrl || "",
+      phoneVerifiedAt: profile.pressShop?.phoneVerifiedAt || "",
+      phoneOtp: "",
+      phoneOtpVerified: false
+    });
+    setSubscriptionPlans(Array.isArray(profile.subscriptionPlans) ? profile.subscriptionPlans : []);
+    setPaymentCapabilities(profile.paymentCapabilities || null);
+  };
+
+  const refreshProfile = async () => {
+    const profileRes = await API.get("/user/profile");
+    applyProfilePayload(profileRes.data);
+    return profileRes.data;
+  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -84,34 +121,7 @@ function Dashboard() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const profileRes = await API.get("/user/profile");
-        const profile = profileRes.data;
-        setCurrentUser(profile.user);
-        saveSession({ user: profile.user });
-        setProfileForm({
-          name: profile.user?.name || "",
-          phone: profile.user?.phone || "",
-          shopName: profile.pressShop?.shopName || "",
-          address: profile.pressShop?.address || "",
-          specialty: profile.pressShop?.specialty || "",
-          eta: profile.pressShop?.eta || "",
-          pickupWindow: profile.pressShop?.pickupWindow || "",
-          about: profile.pressShop?.about || "",
-          pricePerCloth: profile.pressShop?.pricePerCloth ?? "",
-          serviceRadiusKm: profile.pressShop?.serviceRadiusKm ?? "",
-          latitude: profile.pressShop?.location?.coordinates?.[1] ?? "",
-          longitude: profile.pressShop?.location?.coordinates?.[0] ?? "",
-          services: Array.isArray(profile.pressShop?.services) ? profile.pressShop.services.join(", ") : "",
-          verificationStatus: profile.pressShop?.verificationStatus || "",
-          verificationNotes: profile.pressShop?.verificationNotes || "",
-          fraudSignals: Array.isArray(profile.pressShop?.fraudSignals) ? profile.pressShop.fraudSignals.join(" | ") : "",
-          shopPhotoDataUrl: profile.pressShop?.shopPhotoDataUrl || "",
-          phoneVerifiedAt: profile.pressShop?.phoneVerifiedAt || "",
-          phoneOtp: "",
-          phoneOtpVerified: false
-        });
-        setSubscriptionPlans(Array.isArray(profile.subscriptionPlans) ? profile.subscriptionPlans : []);
-        setPaymentCapabilities(profile.paymentCapabilities || null);
+        await refreshProfile();
       } catch (error) {
         setProfileMessage(getApiErrorMessage(error, "Profile details load nahi ho paaye."));
       }
@@ -141,6 +151,7 @@ function Dashboard() {
         phone: profileForm.phone
       });
       setProfileMessage(res.data.deliveryHint || res.data.message || "OTP sent.");
+      setSubscriptionMessage("");
     } catch (error) {
       setProfileMessage(getApiErrorMessage(error, "Phone OTP bhejna possible nahi hua."));
     } finally {
@@ -165,6 +176,7 @@ function Dashboard() {
         phoneOtpVerified: true
       }));
       setProfileMessage(res.data.message || "Phone verified.");
+      setSubscriptionMessage("");
     } catch (error) {
       setProfileForm((current) => ({
         ...current,
@@ -178,8 +190,16 @@ function Dashboard() {
 
   const handleProfileSave = async (event) => {
     event.preventDefault();
+
+    if (phoneNeedsVerification && !profileForm.phoneOtpVerified) {
+      setProfileMessage("Naya phone number save karne se pehle OTP verify karo.");
+      setSubscriptionMessage("");
+      return;
+    }
+
     setSavingProfile(true);
     setProfileMessage("");
+    setSubscriptionMessage("");
 
     try {
       const payload = {
@@ -204,21 +224,7 @@ function Dashboard() {
       }
 
       const res = await API.put("/user/profile", payload);
-      setCurrentUser(res.data.user);
-      saveSession({ user: res.data.user });
-      setPaymentCapabilities(res.data.paymentCapabilities || paymentCapabilities);
-      setProfileForm((current) => ({
-        ...current,
-        name: res.data.user?.name || current.name,
-        phone: res.data.user?.phone || "",
-        verificationStatus: res.data.pressShop?.verificationStatus || current.verificationStatus,
-        verificationNotes: res.data.pressShop?.verificationNotes || "",
-        fraudSignals: Array.isArray(res.data.pressShop?.fraudSignals) ? res.data.pressShop.fraudSignals.join(" | ") : current.fraudSignals,
-        shopPhotoDataUrl: res.data.pressShop?.shopPhotoDataUrl || current.shopPhotoDataUrl,
-        phoneVerifiedAt: res.data.pressShop?.phoneVerifiedAt || current.phoneVerifiedAt,
-        phoneOtp: "",
-        phoneOtpVerified: false
-      }));
+      applyProfilePayload(res.data);
       setProfileMessage(
         res.data.pressShop?.verificationStatus === "pending"
           ? "Profile updated. Shop abhi pending state me hi hai."
@@ -258,12 +264,19 @@ function Dashboard() {
   const handleSubscriptionChange = async (planId, paymentMode) => {
     try {
       setSubscriptionLoading(`${planId}:${paymentMode}`);
+      setSubscriptionMessage("");
+      setProfileMessage("");
       const res = await API.put("/user/subscription", {
         planId,
         paymentMode
       });
 
       if (paymentMode === "online" && res.data.paymentSession) {
+        if (res.data.paymentSession.provider !== "razorpay") {
+          setSubscriptionMessage("Online payment gateway abhi ready nahi hai. Filhal offline request use karo.");
+          return;
+        }
+
         await startHostedPayment({
           session: res.data.paymentSession,
           customer: currentUser,
@@ -276,29 +289,27 @@ function Dashboard() {
           }
         });
 
-        const profileRes = await API.get("/user/profile");
-        setCurrentUser(profileRes.data.user);
-        saveSession({ user: profileRes.data.user });
-        setPaymentCapabilities(profileRes.data.paymentCapabilities || null);
-        setSubscriptionPlans(Array.isArray(profileRes.data.subscriptionPlans) ? profileRes.data.subscriptionPlans : []);
-        setProfileForm((current) => ({
-          ...current,
-          verificationStatus: profileRes.data.pressShop?.verificationStatus || current.verificationStatus
-        }));
-        setProfileMessage("Subscription payment verified and plan activated.");
+        await refreshProfile();
+        setSubscriptionMessage("Subscription payment verified and plan activated.");
       } else {
-        setPaymentCapabilities(res.data.paymentCapabilities || null);
-        setProfileMessage(res.data.message || "Subscription updated.");
+        await refreshProfile();
+        setSubscriptionMessage(res.data.message || "Subscription updated.");
       }
     } catch (error) {
-      setProfileMessage(getApiErrorMessage(error, "Subscription update nahi ho paaya."));
+      setSubscriptionMessage(getApiErrorMessage(error, "Subscription update nahi ho paaya."));
     } finally {
       setSubscriptionLoading("");
     }
   };
 
+  const actionToastMessage = subscriptionMessage || profileMessage;
+  const actionToastTone = actionToastMessage && !/(nahi|error|invalid|required|unavailable|failed|missing)/i.test(actionToastMessage)
+    ? "success"
+    : "warning";
+
   return (
     <main className="dashboard-page">
+      <Toast message={actionToastMessage} tone={actionToastTone} />
       <section className="dashboard-hero">
         <div>
           <p className="dashboard-eyebrow">Personal workspace</p>
@@ -410,9 +421,18 @@ function Dashboard() {
                 {` | ${currentPlanRemainingOrders} order slots remaining`}
               </p>
             )}
+            {paymentCapabilities?.subscription?.status === "pending" && (
+              <p className="auth-card__message">
+                Selected plan is pending activation. Complete payment or wait for admin confirmation.
+              </p>
+            )}
+            {subscriptionMessage && <p className="auth-card__message">{subscriptionMessage}</p>}
             <div className="offer-stack">
               {subscriptionPlans.map((plan) => {
                 const isCurrentPlan = paymentCapabilities?.subscription?.plan?.id === plan.id;
+                const disableOnlineButton =
+                  Boolean(subscriptionLoading) ||
+                  !paymentCapabilities?.hostedCheckoutAvailable;
                 return (
                   <div key={plan.id} className="offer-card">
                     <strong>{plan.name}</strong>
@@ -436,10 +456,14 @@ function Dashboard() {
                           <button
                             type="button"
                             className="auth-form__secondary"
-                            disabled={Boolean(subscriptionLoading)}
+                            disabled={disableOnlineButton}
                             onClick={() => handleSubscriptionChange(plan.id, "online")}
                           >
-                            {subscriptionLoading === `${plan.id}:online` ? "Opening..." : "Pay online"}
+                            {!paymentCapabilities?.hostedCheckoutAvailable
+                              ? "Online setup soon"
+                              : subscriptionLoading === `${plan.id}:online`
+                              ? "Opening..."
+                              : "Pay online"}
                           </button>
                           <button
                             type="button"
@@ -576,7 +600,7 @@ function Dashboard() {
             )}
 
             {profileMessage && <p className="auth-card__message">{profileMessage}</p>}
-            <button type="submit" disabled={savingProfile || (phoneNeedsVerification && !profileForm.phoneOtpVerified)}>
+            <button type="submit" disabled={savingProfile}>
               {savingProfile ? "Saving..." : "Save profile"}
             </button>
           </form>

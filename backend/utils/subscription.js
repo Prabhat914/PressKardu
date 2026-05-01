@@ -1,4 +1,5 @@
 const { getSubscriptionPlan, listSubscriptionPlans } = require("../config/subscriptionPlans");
+const { getPaymentProvider, supportsHostedSubscriptionPayments } = require("../services/paymentService");
 
 const SUBSCRIPTION_DURATION_DAYS = Number(process.env.SUBSCRIPTION_DURATION_DAYS || 30);
 
@@ -22,7 +23,9 @@ function getShopPaymentCapabilities(shop) {
   return {
     supportsOfflinePayments: subscription.plan.supportsOfflinePayments && subscription.isActive,
     supportsOnlinePayments: subscription.plan.supportsOnlinePayments && subscription.isActive,
-    subscription
+    subscription,
+    paymentProvider: getPaymentProvider(),
+    hostedCheckoutAvailable: supportsHostedSubscriptionPayments()
   };
 }
 

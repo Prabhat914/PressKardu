@@ -2,7 +2,7 @@ const User = require("../models/User");
 const PressShop = require("../models/PressShop");
 const { getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
 const { listSubscriptionPlans, getShopPaymentCapabilities, buildSubscriptionWindow, buildSubscriptionHistoryEntry } = require("../utils/subscription");
-const { createSubscriptionPaymentSession, buildExpectedSignature } = require("../services/paymentService");
+const { createSubscriptionPaymentSession, buildExpectedSignature, supportsHostedSubscriptionPayments } = require("../services/paymentService");
 
 const buildFraudSignals = ({ address, phone, latitude, longitude, serviceRadiusKm, duplicatePhoneCount }) => {
   const signals = [];
@@ -303,6 +303,12 @@ exports.updateSubscription = async (req, res) => {
 
   if (!["online", "offline"].includes(paymentMode)) {
     return res.status(400).json({ message: "Subscription payment mode must be online or offline" });
+  }
+
+  if (paymentMode === "online" && !supportsHostedSubscriptionPayments()) {
+    return res.status(503).json({
+      message: "Online subscription payment abhi configured nahi hai. Filhal offline request use karo."
+    });
   }
 
   const amount = Number(selectedPlan.monthlyPrice || 0);

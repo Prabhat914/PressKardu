@@ -12,6 +12,13 @@ function getPaymentCurrency() {
   return process.env.PAYMENT_CURRENCY || "INR";
 }
 
+function supportsHostedSubscriptionPayments() {
+  return (
+    getPaymentProvider() === "razorpay" &&
+    Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
+  );
+}
+
 function toSubunits(amount) {
   return Math.round(Number(amount || 0) * 100);
 }
@@ -131,5 +138,6 @@ module.exports = {
   createSubscriptionPaymentSession,
   buildExpectedSignature,
   getPaymentSecret,
-  getPaymentProvider
+  getPaymentProvider,
+  supportsHostedSubscriptionPayments
 };
