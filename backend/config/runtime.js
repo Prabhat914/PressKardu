@@ -75,11 +75,16 @@ function allowConsoleOtpFallback() {
 }
 
 function getAppBaseUrl() {
-  return String(process.env.APP_BASE_URL || "").trim();
+  const explicitUrl = String(process.env.APP_BASE_URL || "").trim();
+
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+
+  return String(process.env.RENDER_EXTERNAL_URL || "").trim();
 }
 
 function validateProductionConfig() {
-  assertProductionRequirement(getAppBaseUrl(), "APP_BASE_URL must be configured in production.");
   assertProductionRequirement(String(process.env.CORS_ORIGIN || "").trim(), "CORS_ORIGIN must be configured in production.");
   assertProductionRequirement(String(process.env.MONGO_URI || "").trim(), "MONGO_URI must be configured in production.");
   getJwtSecret();
