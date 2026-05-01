@@ -31,7 +31,33 @@ function AuthVisibilityField({
             aria-pressed={isVisible}
             onClick={() => setIsVisible((current) => !current)}
           >
-            {isVisible ? "Hide" : "Show"}
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M2.25 12s3.5-6.75 9.75-6.75S21.75 12 21.75 12 18.25 18.75 12 18.75 2.25 12 2.25 12Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              {isVisible && (
+                <path
+                  d="M4 20 20 4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              )}
+            </svg>
           </button>
         )}
       </div>

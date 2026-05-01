@@ -443,7 +443,7 @@ body {
 }
 
 .auth-field__input--with-toggle {
-  padding-right: 72px;
+  padding-right: 56px;
 }
 
 .auth-field__toggle {
@@ -451,20 +451,27 @@ body {
   top: 50%;
   right: 14px;
   transform: translateY(-50%);
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--brand-strong);
-  font-size: 0.8rem;
-  font-weight: 700;
   cursor: pointer;
-  letter-spacing: 0.02em;
-  transition: color 180ms ease, opacity 180ms ease;
-  opacity: 0.8;
+  transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
+  opacity: 0.72;
+}
+
+.auth-field__toggle svg {
+  width: 19px;
+  height: 19px;
 }
 
 .auth-field__toggle:hover {
   opacity: 1;
+  transform: translateY(calc(-50% - 1px));
 }
 
 .auth-field__toggle:focus-visible {
