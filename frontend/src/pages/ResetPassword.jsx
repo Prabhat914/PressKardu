@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
 import Toast from "../components/Toast";
+import AuthVisibilityField from "../components/AuthVisibilityField";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -68,7 +69,7 @@ function ResetPassword() {
 
   return (
     <main className="auth-page">
-      <section className="auth-shell">
+      <section className="auth-shell auth-shell--visible">
         <section className="auth-card auth-card--wide">
           <p className="auth-card__eyebrow">Reset access</p>
           <h2>Verify OTP and reset password</h2>
@@ -77,16 +78,15 @@ function ResetPassword() {
           </p>
 
           <form className="auth-form" onSubmit={handleReset}>
-            <label className="auth-field">
-              <span className="auth-field__label">Email</span>
-              <input
-                className="auth-field__input"
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                required
-              />
-            </label>
+            <AuthVisibilityField
+              label="Email"
+              hiddenType="password"
+              visibleType="email"
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              required
+              autoComplete="email"
+            />
 
             <div className="auth-form__split">
               <label className="auth-field">
@@ -103,27 +103,25 @@ function ResetPassword() {
               </button>
             </div>
 
-            <label className="auth-field">
-              <span className="auth-field__label">New password</span>
-              <input
-                className="auth-field__input"
-                type="password"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                required
-              />
-            </label>
+            <AuthVisibilityField
+              label="New password"
+              hiddenType="password"
+              visibleType="text"
+              value={form.password}
+              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              required
+              autoComplete="new-password"
+            />
 
-            <label className="auth-field">
-              <span className="auth-field__label">Confirm password</span>
-              <input
-                className="auth-field__input"
-                type="password"
-                value={form.confirmPassword}
-                onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-                required
-              />
-            </label>
+            <AuthVisibilityField
+              label="Confirm password"
+              hiddenType="password"
+              visibleType="text"
+              value={form.confirmPassword}
+              onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+              required
+              autoComplete="new-password"
+            />
 
             <button type="submit" disabled={loading}>
               {loading ? "Resetting..." : "Reset password"}

@@ -51,6 +51,15 @@ function isValidShopPhotoDataUrl(value) {
   return /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(value || ""));
 }
 
+function parseOptionalNumber(value) {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 function pushVerificationHistory(shop, status, notes, source, actor) {
   shop.verificationHistory = Array.isArray(shop.verificationHistory) ? shop.verificationHistory : [];
   shop.verificationHistory.push({
@@ -188,20 +197,29 @@ exports.updateProfile = async (req, res) => {
       }
 
       if (req.body.pricePerCloth !== undefined) {
-        pressShop.pricePerCloth = Number(req.body.pricePerCloth);
+        const nextPricePerCloth = parseOptionalNumber(req.body.pricePerCloth);
+        if (Number.isNaN(nextPricePerCloth) || nextPricePerCloth < 0) {
+          return res.status(400).json({ message: "Price per cloth must be a valid non-negative number" });
+        }
+        pressShop.pricePerCloth = nextPricePerCloth;
       }
 
       if (req.body.serviceRadiusKm !== undefined) {
-        pressShop.serviceRadiusKm = Number(req.body.serviceRadiusKm);
+        const nextServiceRadius = parseOptionalNumber(req.body.serviceRadiusKm);
+        if (Number.isNaN(nextServiceRadius) || nextServiceRadius < 1 || nextServiceRadius > 50) {
+          return res.status(400).json({ message: "Service radius must be between 1 and 50 km" });
+        }
+        pressShop.serviceRadiusKm = nextServiceRadius;
       }
 
-      const duplicatePhoneCount = user.phone
-        ? await PressShop.countDocuments({ phone: user.phone, _id: { $ne: pressShop._id } })
+      const activePhone = normalizedNextPhone || normalizePhone(user.phone);
+      const duplicatePhoneCount = activePhone
+        ? await PressShop.countDocuments({ phone: activePhone, _id: { $ne: pressShop._id } })
         : 0;
 
       pressShop.fraudSignals = buildFraudSignals({
         address: pressShop.address,
-        phone: user.phone,
+        phone: activePhone,
         latitude: pressShop.location?.coordinates?.[1],
         longitude: pressShop.location?.coordinates?.[0],
         serviceRadiusKm: pressShop.serviceRadiusKm,

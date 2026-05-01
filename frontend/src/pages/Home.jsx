@@ -97,6 +97,15 @@ function Home() {
   );
   const orderEstimate = selectedShop ? estimateOrderBenefits(selectedShop, orderForm) : null;
 
+  const applyShopCollection = (incomingShops, nextLocation, nextStatus) => {
+    setShops(enrichShopCollection(incomingShops, nextLocation));
+    setStatus(nextStatus);
+  };
+
+  const showFallbackShops = (nextLocation, nextStatus) => {
+    applyShopCollection(buildFallbackShops(nextLocation), nextLocation, nextStatus);
+  };
+
   useEffect(() => {
     if (shops.length < 2) {
       return undefined;
@@ -129,19 +138,24 @@ function Home() {
         const incomingShops = Array.isArray(res.data) ? res.data : [];
 
         if (incomingShops.length === 0) {
-          setShops([]);
-          setStatus("Abhi koi approved live shop available nahi hai.");
+          showFallbackShops(
+            userLocation,
+            "Abhi live approved shops available nahi hain, isliye curated PressKardu preview shops dikh rahe hain."
+          );
         } else {
-          setShops(enrichShopCollection(incomingShops, userLocation));
-          setStatus("Shopkeeper ke added live shops yahan dikh rahe hain. Current location add karke nearby shops dekh sakte ho.");
+          applyShopCollection(
+            incomingShops,
+            userLocation,
+            "Shopkeeper ke added live shops yahan dikh rahe hain. Current location add karke nearby shops dekh sakte ho."
+          );
         }
       } catch (requestError) {
         console.log(requestError);
-        setShops([]);
-        setStatus(
+        showFallbackShops(
+          userLocation,
           getApiErrorMessage(
             requestError,
-            "Live shops API unavailable hai."
+            "Live shops API unavailable hai. Filhal curated PressKardu preview shops dikh rahe hain."
           )
         );
       } finally {
@@ -174,15 +188,19 @@ function Home() {
           const incomingShops = Array.isArray(res.data) ? res.data : [];
 
           if (incomingShops.length === 0) {
-            setShops([]);
-            setStatus("Aapke nearby koi approved live shop nahi mila.");
+            showFallbackShops(
+              nextLocation,
+              "Aapke nearby koi approved live shop nahi mila, isliye curated preview shops dikh rahe hain."
+            );
           } else {
-            setShops(enrichShopCollection(incomingShops, nextLocation));
-            setStatus("Aapke current location ke nearby shops dikh rahe hain.");
+            applyShopCollection(incomingShops, nextLocation, "Aapke current location ke nearby shops dikh rahe hain.");
           }
         } catch (requestError) {
           console.log(requestError);
-          setStatus(getApiErrorMessage(requestError, "Nearby shops load nahi ho paaye."));
+          showFallbackShops(
+            nextLocation,
+            getApiErrorMessage(requestError, "Nearby shops load nahi ho paaye. Filhal curated preview shops dikh rahe hain.")
+          );
         } finally {
           setLoading(false);
           setLocating(false);
@@ -208,15 +226,23 @@ function Home() {
       const incomingShops = Array.isArray(res.data) ? res.data : [];
 
       if (incomingShops.length === 0) {
-        setShops([]);
-        setStatus("Abhi koi approved live shop available nahi hai.");
+        showFallbackShops(
+          userLocation,
+          "Abhi live approved shops available nahi hain, isliye curated PressKardu preview shops dikh rahe hain."
+        );
       } else {
-        setShops(enrichShopCollection(incomingShops, userLocation));
-        setStatus("All live shops dikh rahe hain. Current location add karke nearby shops par switch kar sakte ho.");
+        applyShopCollection(
+          incomingShops,
+          userLocation,
+          "All live shops dikh rahe hain. Current location add karke nearby shops par switch kar sakte ho."
+        );
       }
     } catch (requestError) {
       console.log(requestError);
-      setStatus(getApiErrorMessage(requestError, "All shops load nahi ho paaye."));
+      showFallbackShops(
+        userLocation,
+        getApiErrorMessage(requestError, "All shops load nahi ho paaye. Filhal curated preview shops dikh rahe hain.")
+      );
     } finally {
       setLoading(false);
     }

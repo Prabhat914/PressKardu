@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
 import Toast from "../components/Toast";
+import AuthVisibilityField from "../components/AuthVisibilityField";
 
 function ForgotPassword() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ function ForgotPassword() {
 
   return (
     <main className="auth-page">
-      <section className="auth-shell">
+      <section className="auth-shell auth-shell--visible">
         <section className="auth-card auth-card--wide">
           <p className="auth-card__eyebrow">Password recovery</p>
           <h2>Forgot password</h2>
@@ -45,16 +46,15 @@ function ForgotPassword() {
           </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
-            <label className="auth-field">
-              <span className="auth-field__label">Email</span>
-              <input
-                className="auth-field__input"
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                required
-              />
-            </label>
+            <AuthVisibilityField
+              label="Email"
+              hiddenType="password"
+              visibleType="email"
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              required
+              autoComplete="email"
+            />
 
             <label className="auth-field">
               <span className="auth-field__label">OTP channel</span>

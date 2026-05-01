@@ -18,7 +18,10 @@ const validateRequest = (req, res, next) => {
 router.post("/signup",
     body("name").trim().notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
-    body("password").isLength({ min: 6}).withMessage("Password must be at least 6 characters"),
+    body("password")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
+        .matches(/[A-Za-z]/).withMessage("Password must include at least one letter")
+        .matches(/\d/).withMessage("Password must include at least one number"),
     body("phone").optional({ values: "falsy" }).trim().isLength({ min: 10, max: 15 }).withMessage("Phone must be between 10 and 15 digits"),
     body("role").optional().isIn(["user", "presswala"]).withMessage("Invalid role"),
     validateRequest,
@@ -50,7 +53,10 @@ router.post("/verify-reset-otp",
 router.post("/reset-password",
     body("email").isEmail().withMessage("Valid email is required"),
     body("resetToken").trim().notEmpty().withMessage("Reset token is required"),
-    body("password").isLength({ min: 6}).withMessage("Password must be at least 6 characters"),
+    body("password")
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
+        .matches(/[A-Za-z]/).withMessage("Password must include at least one letter")
+        .matches(/\d/).withMessage("Password must include at least one number"),
     validateRequest,
     resetPassword);
 module.exports = router;

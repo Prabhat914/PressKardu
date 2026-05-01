@@ -1,3 +1,5 @@
+const { allowConsoleOtpFallback } = require("../config/runtime");
+
 async function postJson(url, payload, options = {}) {
   const response = await fetch(url, {
     method: options.method || "POST",
@@ -163,6 +165,10 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
     }
   } catch (error) {
     console.error("OTP delivery provider failed:", error.message);
+  }
+
+  if (!allowConsoleOtpFallback()) {
+    throw new Error(`No ${channel.toUpperCase()} OTP provider is configured.`);
   }
 
   console.log(`[OTP:${channel}] ${target} -> ${otp}`);

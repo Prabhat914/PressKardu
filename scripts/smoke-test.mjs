@@ -1,9 +1,9 @@
 const baseUrl = process.env.PRESSKARDU_API_BASE_URL || "http://127.0.0.1:5000/api";
 const uniqueId = Date.now();
 const email = `smoke-${uniqueId}@example.com`;
-const password = "123456";
+const password = "Smoke123";
 const shopEmail = `shop-smoke-${uniqueId}@example.com`;
-const shopPassword = "123456";
+const shopPassword = "Smoke123";
 const shopPhone = `90000${String(uniqueId).slice(-5)}`;
 const updatedShopPhone = `90100${String(uniqueId).slice(-5)}`;
 const samplePhoto = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WnSUswAAAAASUVORK5CYII=";

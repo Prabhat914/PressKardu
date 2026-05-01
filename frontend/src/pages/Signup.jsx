@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/apiError";
 import { saveSession } from "../utils/session";
 import Toast from "../components/Toast";
+import AuthVisibilityField from "../components/AuthVisibilityField";
 
 function Signup() {
   const navigate = useNavigate();
@@ -372,10 +373,17 @@ function Signup() {
             </label>
 
             <div className="auth-form__split">
-              <label className="auth-field">
-                <span className="auth-field__label">Email</span>
-                <input className="auth-field__input" name="email" type="email" placeholder="name@example.com" onChange={handleChange} value={form.email} required autoComplete="email" />
-              </label>
+              <AuthVisibilityField
+                label="Email"
+                name="email"
+                hiddenType="password"
+                visibleType="email"
+                placeholder="name@example.com"
+                onChange={handleChange}
+                value={form.email}
+                required
+                autoComplete="email"
+              />
 
               <label className="auth-field">
                 <span className="auth-field__label">Phone</span>
@@ -503,19 +511,17 @@ function Signup() {
               </div>
             )}
 
-            <label className="auth-field">
-              <span className="auth-field__label">Password</span>
-              <input
-                className="auth-field__input"
-                name="password"
-                type="password"
-                placeholder="Minimum 6 characters"
-                onChange={handleChange}
-                value={form.password}
-                required
-                autoComplete="new-password"
-              />
-            </label>
+            <AuthVisibilityField
+              label="Password"
+              name="password"
+              hiddenType="password"
+              visibleType="text"
+              placeholder="Minimum 8 characters with letters and numbers"
+              onChange={handleChange}
+              value={form.password}
+              required
+              autoComplete="new-password"
+            />
 
             <button type="submit" disabled={loading || (form.role === "presswala" && !form.phoneOtpVerified)}>
               {loading ? "Creating account..." : "Signup"}

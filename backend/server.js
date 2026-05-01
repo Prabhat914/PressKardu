@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const app = require("./app");
 const connectDB = require("./config/db");
+const { validateProductionConfig } = require("./config/runtime");
 const bootstrapAdmin = require("./services/bootstrapAdmin");
 
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ process.on("unhandledRejection", (error) => {
 
 const startServer = async () => {
   try {
+    validateProductionConfig();
     await connectDB();
     await bootstrapAdmin();
 

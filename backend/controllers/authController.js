@@ -6,13 +6,21 @@ const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
 const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
 const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
+const { allowDebugOtpExposure, isProduction, getJwtSecret } = require("../config/runtime");
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
 const RESET_TOKEN_EXPIRY_MINUTES = Number(process.env.RESET_TOKEN_EXPIRY_MINUTES || 15);
 const MAX_OTP_ATTEMPTS = Number(process.env.MAX_OTP_ATTEMPTS || 5);
-const SHOULD_EXPOSE_DEBUG_OTP =
-    process.env.NODE_ENV !== "production" && process.env.ALLOW_DEBUG_OTP === "true";
+const SHOULD_EXPOSE_DEBUG_OTP = allowDebugOtpExposure();
 const PHONE_OTP_COOLDOWN_SECONDS = Number(process.env.PHONE_OTP_COOLDOWN_SECONDS || 45);
+
+function ensureOtpDeliveryAvailable(delivery, channel) {
+    if (delivery?.provider === "console-fallback" && isProduction) {
+        const error = new Error(`${channel.toUpperCase()} OTP delivery is not configured for production use.`);
+        error.statusCode = 503;
+        throw error;
+    }
+}
 
 const assessFraudSignals = ({ address, latitude, longitude, phone, serviceRadiusKm }) => {
     const signals = [];
@@ -88,13 +96,12 @@ exports.sendPhoneVerificationOtp = async (req, res) => {
         otp,
         purpose: "phone verification"
     });
+    ensureOtpDeliveryAvailable(delivery, "sms");
 
     res.json({
         message: "Phone verification OTP sent.",
         delivery,
-        deliveryHint: delivery.provider === "console-fallback"
-            ? "No SMS provider is configured yet, so the OTP is available in backend logs."
-            : `OTP sent via ${delivery.provider}.`,
+        deliveryHint: `OTP sent via ${delivery.provider}.`,
         ...(SHOULD_EXPOSE_DEBUG_OTP ? { debugOtp: otp } : {})
     });
 };
@@ -178,7 +185,7 @@ exports.login = async (req, res) =>{
 
     const token = jwt.sign(
         { id: user._id, role: user.role },
-        process.env.JWT_SECRET || "secretKey",
+        getJwtSecret(),
         { expiresIn : "7d" }
     );
 
@@ -329,7 +336,7 @@ exports.signup = async (req, res)=>{
 
     const token = jwt.sign(
         { id: user._id, role: user.role },
-        process.env.JWT_SECRET || "secretKey",
+        getJwtSecret(),
         { expiresIn : "7d" }
     );
 
@@ -390,13 +397,12 @@ exports.forgotPassword = async (req, res) => {
         phone: user.phone,
         otp
     });
+    ensureOtpDeliveryAvailable(delivery, channel);
 
     res.json({
         message: "If this account exists, an OTP has been sent.",
         delivery,
-        deliveryHint: delivery.provider === "console-fallback"
-            ? "No email/SMS provider is configured yet, so the OTP is available in backend logs."
-            : `OTP sent via ${delivery.provider}.`,
+        deliveryHint: `OTP sent via ${delivery.provider}.`,
         ...(SHOULD_EXPOSE_DEBUG_OTP ? { debugOtp: otp } : {})
     });
 };

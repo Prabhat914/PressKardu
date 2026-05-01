@@ -9,37 +9,42 @@ const orderRoutes = require("./routes/orderRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
+const { createRateLimiter } = require("./middleware/rateLimit");
 const { getOtpDeliveryStatus } = require("./utils/otpDelivery");
+const { isProduction, isTrustedOrigin } = require("./config/runtime");
 
 const app = express();
-const allowedOrigins = (process.env.CORS_ORIGIN || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const authRateLimiter = createRateLimiter({
+    windowMs: 10 * 60 * 1000,
+    limit: 25,
+    message: "Too many authentication attempts. Please try again later."
+});
 
-function isAllowedOrigin(origin) {
-    if (!origin || allowedOrigins.length === 0) {
-        return true;
+const passwordResetRateLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    message: "Too many password reset attempts. Please try again later."
+});
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "geolocation=(self), camera=(), microphone=()");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+
+    if (isProduction) {
+        res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
     }
 
-    if (allowedOrigins.includes(origin)) {
-        return true;
-    }
-
-    try {
-        const { hostname } = new URL(origin);
-        const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
-        const isVercelPreview = hostname.endsWith(".vercel.app");
-
-        return isLocalhost || isVercelPreview;
-    } catch {
-        return false;
-    }
-}
+    next();
+});
 
 app.use(cors({
     origin(origin, callback) {
-        if (isAllowedOrigin(origin)) {
+        if (isTrustedOrigin(origin)) {
             return callback(null, true);
         }
 
@@ -50,6 +55,12 @@ app.use(cors({
 app.use(express.json({ limit: "8mb" }));
 
 app.use(morgan("dev"));
+app.use("/api/auth/login", authRateLimiter);
+app.use("/api/auth/signup", authRateLimiter);
+app.use("/api/auth/phone-verification", authRateLimiter);
+app.use("/api/auth/forgot-password", passwordResetRateLimiter);
+app.use("/api/auth/verify-reset-otp", passwordResetRateLimiter);
+app.use("/api/auth/reset-password", passwordResetRateLimiter);
 app.get("/api/health", (req, res) => {
     res.json({
         status: mongoose.connection.readyState === 1 ? "ok" : "degraded",
