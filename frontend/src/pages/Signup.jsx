@@ -379,19 +379,17 @@ function Signup() {
             </label>
 
             <div className="auth-form__split">
-              <label className="auth-field">
-                <span className="auth-field__label">Email</span>
-                <input
-                  className="auth-field__input"
-                  name="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  onChange={handleChange}
-                  value={form.email}
-                  required
-                  autoComplete="email"
-                />
-              </label>
+              <AuthVisibilityField
+                label="Email"
+                name="email"
+                hiddenType="password"
+                visibleType="email"
+                placeholder="name@example.com"
+                onChange={handleChange}
+                value={form.email}
+                required
+                autoComplete="email"
+              />
 
               <label className="auth-field">
                 <span className="auth-field__label">Phone</span>
