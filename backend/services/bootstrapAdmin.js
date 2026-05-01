@@ -1,8 +1,9 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const { getAdminEmail } = require("../config/runtime");
 
 async function bootstrapAdmin() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const email = getAdminEmail();
   const password = process.env.ADMIN_PASSWORD?.trim();
   const name = process.env.ADMIN_NAME?.trim() || "PressKardu Admin";
 
@@ -11,17 +12,27 @@ async function bootstrapAdmin() {
   }
 
   const existingAdmin = await User.findOne({ email });
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   if (existingAdmin) {
+    let wasUpdated = false;
+
     if (existingAdmin.role !== "admin") {
       existingAdmin.role = "admin";
-      await existingAdmin.save();
-      console.log(`Admin role granted to ${email}`);
+      wasUpdated = true;
     }
+
+    if (existingAdmin.name !== name) {
+      existingAdmin.name = name;
+      wasUpdated = true;
+    }
+
+    existingAdmin.password = hashedPassword;
+
+    await existingAdmin.save();
+    console.log(wasUpdated ? `Admin account synced for ${email}` : `Admin password refreshed for ${email}`);
     return;
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
 
   await User.create({
     name,

@@ -263,7 +263,13 @@ function Signup() {
       const res = await API.post("/auth/signup", payload);
       saveSession({ token: res.data.token, user: res.data.user });
       setMessage(res.data.message || "Signup completed successfully.");
-      navigate(res.data.user.role === "presswala" ? "/shops" : "/");
+      navigate(
+        res.data.user.role === "admin"
+          ? "/admin"
+          : res.data.user.role === "presswala"
+          ? "/shops"
+          : "/"
+      );
     } catch (error) {
       console.error("Error signing up:", error);
       setMessage(getApiErrorMessage(error, "Signup complete nahi ho paaya. Dobara try karo."));

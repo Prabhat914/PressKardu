@@ -34,7 +34,13 @@ function Login() {
       const res = await API.post("/auth/login", form);
 
       saveSession({ token: res.data.token, user: res.data.user });
-      navigate(res.data.user.role === "presswala" ? "/shops" : "/");
+      navigate(
+        res.data.user.role === "admin"
+          ? "/admin"
+          : res.data.user.role === "presswala"
+          ? "/shops"
+          : "/"
+      );
 
     } catch (error) {
       console.log(error);
@@ -90,6 +96,9 @@ function Login() {
           <h2>Login to PressKardu</h2>
           <p className="auth-card__copy">
             Continue to your orders, nearby shops, and pickup requests.
+          </p>
+          <p className="auth-card__message">
+            Platform admin bhi isi login page se sign in karega. Admin account public signup se create nahi hota.
           </p>
 
           <div className="auth-card__mini-stats" aria-hidden="true">

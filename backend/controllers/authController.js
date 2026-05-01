@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
 const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
 const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
-const { allowDebugOtpExposure, isProduction, getJwtSecret } = require("../config/runtime");
+const { allowDebugOtpExposure, isProduction, getJwtSecret, getAdminEmail } = require("../config/runtime");
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
 const RESET_TOKEN_EXPIRY_MINUTES = Number(process.env.RESET_TOKEN_EXPIRY_MINUTES || 15);
@@ -219,6 +219,14 @@ exports.signup = async (req, res)=>{
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const reservedAdminEmail = getAdminEmail();
+
+    if (reservedAdminEmail && normalizedEmail === reservedAdminEmail) {
+        return res.status(403).json({
+            message: "This email is reserved for the platform admin. Admin account ke liye login use karo, public signup nahi."
+        });
+    }
+
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
