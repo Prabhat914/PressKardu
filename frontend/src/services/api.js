@@ -1,13 +1,16 @@
 
 import axios from "axios";
 
+const DEFAULT_RENDER_API_BASE_URL = "https://presskardu.onrender.com/api";
 const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").trim();
-const apiBaseUrl = configuredApiBaseUrl || "/api";
-
-if (
+const isProductionHost =
   typeof window !== "undefined" &&
   window.location.hostname !== "localhost" &&
-  window.location.hostname !== "127.0.0.1" &&
+  window.location.hostname !== "127.0.0.1";
+const apiBaseUrl = configuredApiBaseUrl || (isProductionHost ? DEFAULT_RENDER_API_BASE_URL : "/api");
+
+if (
+  isProductionHost &&
   configuredApiBaseUrl &&
   !/^https?:\/\//i.test(configuredApiBaseUrl)
 ) {
