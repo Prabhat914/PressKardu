@@ -11,7 +11,23 @@ async function bootstrapAdmin() {
     return;
   }
 
-  const existingAdmin = await User.findOne({ email });
+  const normalizedEmail = email.toLowerCase();
+
+  const downgradedAdmins = await User.updateMany(
+    {
+      role: "admin",
+      email: { $ne: normalizedEmail }
+    },
+    {
+      $set: { role: "user" }
+    }
+  );
+
+  if (downgradedAdmins.modifiedCount > 0) {
+    console.log(`Downgraded ${downgradedAdmins.modifiedCount} non-reserved admin account(s).`);
+  }
+
+  const existingAdmin = await User.findOne({ email: normalizedEmail });
   const hashedPassword = await bcrypt.hash(password, 10);
 
   if (existingAdmin) {
@@ -36,12 +52,12 @@ async function bootstrapAdmin() {
 
   await User.create({
     name,
-    email,
+    email: normalizedEmail,
     password: hashedPassword,
     role: "admin"
   });
 
-  console.log(`Admin account bootstrapped for ${email}`);
+  console.log(`Admin account bootstrapped for ${normalizedEmail}`);
 }
 
 module.exports = bootstrapAdmin;

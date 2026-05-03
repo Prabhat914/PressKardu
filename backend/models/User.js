@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { getAdminEmail } = require("../config/runtime");
 
 const userSchema = new mongoose.Schema({
     name : {
@@ -41,5 +42,23 @@ const userSchema = new mongoose.Schema({
         verifiedAt: Date
     }
 }, {timestamps : true});
+
+userSchema.pre("validate", function normalizeAndValidateAdminRole(next) {
+    if (this.email) {
+        this.email = String(this.email).trim().toLowerCase();
+    }
+
+    if (this.role !== "admin") {
+        return next();
+    }
+
+    const reservedAdminEmail = getAdminEmail();
+
+    if (!reservedAdminEmail || this.email !== reservedAdminEmail) {
+        return next(new Error("Only the configured ADMIN_EMAIL account can hold the admin role."));
+    }
+
+    next();
+});
 
 module.exports  = mongoose.model("User", userSchema);
