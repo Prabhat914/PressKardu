@@ -59,7 +59,6 @@ function Login() {
         description="The scene plays first, and as the pressing begins your account access appears right after."
         onReveal={() => setShowShell(true)}
       />
-      <Toast message={message} tone="warning" />
       <section className={`auth-shell${showShell ? " auth-shell--visible" : ""}`}>
         <aside className="auth-panel auth-panel--intro">
           <div className="auth-panel__veil" aria-hidden="true" />
@@ -97,6 +96,7 @@ function Login() {
           <p className="auth-card__copy">
             Continue to your orders, nearby shops, and pickup requests.
           </p>
+          <Toast message={message} tone="warning" inline />
           <p className="auth-card__message">
             Platform admin bhi isi login page se sign in karega. Admin account public signup se create nahi hota.
           </p>

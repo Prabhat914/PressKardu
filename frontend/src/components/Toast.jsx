@@ -1,11 +1,15 @@
-function Toast({ message, tone = "info" }) {
+function Toast({ message, tone = "info", inline = false }) {
   if (!message) {
     return null;
   }
 
   return (
-    <div className={`app-toast app-toast--${tone}`} role="status" aria-live="polite">
-      <strong>{tone === "success" ? "Success" : tone === "warning" ? "Attention" : "Update"}</strong>
+    <div
+      className={`app-toast app-toast--${tone}${inline ? " app-toast--inline" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      <strong>{tone === "success" ? "Success" : tone === "warning" ? "Error" : "Update"}</strong>
       <span>{message}</span>
     </div>
   );

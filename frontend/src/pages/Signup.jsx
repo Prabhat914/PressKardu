@@ -287,7 +287,6 @@ function Signup() {
         description="As soon as the pressing starts, your signup journey appears below with the same premium tone."
         onReveal={() => setShowShell(true)}
       />
-      <Toast message={message} tone="warning" />
       <section className={`auth-shell${showShell ? " auth-shell--visible" : ""}`}>
         <aside className="auth-panel auth-panel--intro">
           <div className="auth-panel__veil" aria-hidden="true" />
@@ -336,6 +335,7 @@ function Signup() {
           <p className="auth-card__copy">
             Choose your account type and complete the setup in one flow.
           </p>
+          <Toast message={message} tone="warning" inline />
           {form.role === "presswala" && (
             <p className="auth-card__message">
               New shop listings stay hidden until an admin reviews the address, phone, and map pin.

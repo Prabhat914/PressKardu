@@ -422,6 +422,8 @@ body {
 
 .auth-field__control {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .auth-field__label {
@@ -443,25 +445,27 @@ body {
 }
 
 .auth-field__input--with-toggle {
-  padding-right: 56px;
+  padding-right: 64px;
 }
 
 .auth-field__toggle {
   position: absolute;
   top: 50%;
-  right: 14px;
+  right: 16px;
   transform: translateY(-50%);
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
-  background: transparent;
+  border-radius: 999px;
+  background: rgba(17, 107, 98, 0.08);
   color: var(--brand-strong);
   cursor: pointer;
   transition: color 180ms ease, opacity 180ms ease, transform 180ms ease;
-  opacity: 0.72;
+  opacity: 0.9;
+  z-index: 1;
 }
 
 .auth-field__toggle svg {
@@ -496,6 +500,11 @@ body {
   -webkit-text-fill-color: #2b2118;
   -webkit-box-shadow: 0 0 0 1000px #fff inset;
   transition: background-color 9999s ease-out 0s;
+}
+
+.auth-field__input::-ms-reveal,
+.auth-field__input::-ms-clear {
+  display: none;
 }
 
 .auth-form button {
@@ -3407,6 +3416,14 @@ body {
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.app-toast--inline {
+  position: static;
+  top: auto;
+  width: 100%;
+  margin: 0 0 14px;
+  z-index: auto;
 }
 
 .app-toast--info {
