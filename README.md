@@ -53,20 +53,24 @@ PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 ```
 
 If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set, a default admin account is bootstrapped automatically on backend startup.
+Only that reserved `ADMIN_EMAIL` account can keep the `admin` role; any other admin-role user is downgraded on startup.
 
 Frontend `.env` supports:
 
 ```env
 VITE_API_BASE_URL=/api
+BACKEND_PUBLIC_URL=
 ```
 
-Use a full backend URL in production if frontend and backend are deployed on different domains.
+For Vercel deployments, keep `VITE_API_BASE_URL=/api` and set `BACKEND_PUBLIC_URL` so the built-in `/api` proxy can forward requests to your deployed backend without browser CORS issues.
+Use a full `VITE_API_BASE_URL` only if you intentionally want the browser to call the backend directly.
 
 Production examples:
 
 - [backend/.env.production.example](C:\Users\moto g\OneDrive\Desktop\PressKardu\backend\.env.production.example)
 - [frontend/.env.production.example](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\.env.production.example)
 - [frontend/vercel.json](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\vercel.json)
+- [frontend/api/[...path].js](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\api\[...path].js)
 
 ## Smoke Test
 

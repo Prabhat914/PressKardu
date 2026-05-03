@@ -22,13 +22,15 @@ The frontend is now prepared for Vercel with:
 
 - [frontend/vercel.json](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\vercel.json)
 - [frontend/.env.production.example](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\.env.production.example)
+- [frontend/api/[...path].js](C:\Users\moto g\OneDrive\Desktop\PressKardu\frontend\api\[...path].js)
 
 Vercel project settings:
 
 1. Import this repository in Vercel
 2. Set the Root Directory to `frontend`
-3. Add `VITE_API_BASE_URL` as an environment variable
-4. Deploy
+3. Add `BACKEND_PUBLIC_URL` as an environment variable pointing to your backend origin, without `/api`
+4. Keep `VITE_API_BASE_URL=/api`
+5. Deploy
 
 For React Router, the rewrite in `frontend/vercel.json` sends non-API routes to `index.html`.
 
@@ -83,12 +85,15 @@ node server.js
 
 ## Frontend Checklist
 
-1. Set `VITE_API_BASE_URL` to your backend public URL plus `/api` if frontend and backend are on different origins.
-2. If frontend and backend share the same domain via reverse proxy, keep:
+1. Recommended on Vercel: set `BACKEND_PUBLIC_URL` to your backend origin and keep:
 
 ```env
 VITE_API_BASE_URL=/api
 ```
+
+This uses the bundled Vercel proxy and avoids browser-side CORS failures.
+
+2. Only if you intentionally want the browser to call the backend directly, set `VITE_API_BASE_URL` to your backend public URL plus `/api`.
 
 ## Pre-Deploy QA
 
@@ -134,5 +139,6 @@ PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 Frontend:
 
 ```env
-VITE_API_BASE_URL=https://your-backend-domain.example.com/api
+BACKEND_PUBLIC_URL=https://your-backend-domain.example.com
+VITE_API_BASE_URL=/api
 ```

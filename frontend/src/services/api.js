@@ -1,16 +1,18 @@
 
 import axios from "axios";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api";
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+const apiBaseUrl = configuredApiBaseUrl || "/api";
 
 if (
   typeof window !== "undefined" &&
   window.location.hostname !== "localhost" &&
   window.location.hostname !== "127.0.0.1" &&
-  apiBaseUrl === "/api"
+  configuredApiBaseUrl &&
+  !/^https?:\/\//i.test(configuredApiBaseUrl)
 ) {
   console.warn(
-    "VITE_API_BASE_URL is not set for this production build. If frontend and backend are deployed on different domains, set it to your live backend URL ending with /api."
+    "VITE_API_BASE_URL should be an absolute URL when you intentionally bypass the same-origin /api proxy."
   );
 }
 
