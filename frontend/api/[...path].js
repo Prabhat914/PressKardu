@@ -11,8 +11,12 @@ const HOP_BY_HOP_HEADERS = new Set([
   "upgrade"
 ]);
 
+const DEFAULT_RENDER_BACKEND_URL = "https://presskardu-backend.onrender.com";
+
 function getBackendApiBaseUrl() {
-  const configuredUrl = String(process.env.BACKEND_PUBLIC_URL || "").trim();
+  const configuredUrl = String(
+    process.env.BACKEND_PUBLIC_URL || DEFAULT_RENDER_BACKEND_URL
+  ).trim();
 
   if (!configuredUrl) {
     return "";
