@@ -49,7 +49,8 @@ Render setup steps:
 4. Start Command: `npm start`
 5. Set environment variables from `backend/.env.production.example`
 6. Set `CORS_ORIGIN` to your Vercel frontend URL
-7. Deploy and confirm `/api/health` returns `ok`
+7. If you use Vercel preview deployments, the backend now also accepts the same project's preview URLs automatically when `CORS_ORIGIN` points at that Vercel project.
+8. Deploy and confirm `/api/health` returns `ok`
 
 ## Backend Checklist
 
@@ -72,6 +73,7 @@ Render setup steps:
 7. Keep `ALLOW_DEBUG_OTP=false` in production.
 8. Set `PHONE_OTP_COOLDOWN_SECONDS` and `PHONE_VERIFICATION_MAX_AGE_MINUTES` to match your verification policy.
 9. Set `CORS_ORIGIN` to the frontend domain that should be allowed.
+10. Optional: set `ALLOW_VERCEL_PREVIEW_ORIGINS=true` only if you intentionally want to allow any `https://*.vercel.app` preview origin.
 
 Recommended backend start command:
 
