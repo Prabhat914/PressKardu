@@ -1,4 +1,7 @@
 const isProduction = process.env.NODE_ENV === "production";
+const DEFAULT_FRONTEND_ORIGINS = [
+  "https://press-kardu.vercel.app"
+];
 
 function readBoolean(value, fallback = false) {
   if (value === undefined) {
@@ -33,10 +36,13 @@ function getJwtSecret() {
 }
 
 function getAllowedOrigins() {
-  return String(process.env.CORS_ORIGIN || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return [
+    ...DEFAULT_FRONTEND_ORIGINS,
+    ...String(process.env.CORS_ORIGIN || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  ];
 }
 
 function isExplicitOriginAllowed(origin) {
