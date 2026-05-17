@@ -48,12 +48,12 @@ function ForgotPassword() {
           <form className="auth-form" onSubmit={handleSubmit}>
             <AuthVisibilityField
               label="Email"
-              hiddenType="password"
-              visibleType="email"
+              hiddenType="email"
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               required
               autoComplete="email"
+              allowToggle={false}
             />
 
             <label className="auth-field">
