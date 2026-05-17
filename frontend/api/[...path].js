@@ -13,6 +13,12 @@ const HOP_BY_HOP_HEADERS = new Set([
 
 const DEFAULT_RENDER_BACKEND_URL = "https://presskardu.onrender.com";
 
+export const config = {
+  api: {
+    bodyParser: false
+  }
+};
+
 function getBackendApiBaseUrl() {
   const configuredUrl = String(
     process.env.BACKEND_PUBLIC_URL || DEFAULT_RENDER_BACKEND_URL
@@ -62,6 +68,10 @@ function readRequestBody(req) {
     return Promise.resolve(Buffer.from(JSON.stringify(req.body)));
   }
 
+  if (req.readableEnded || req.complete === true) {
+    return Promise.resolve(Buffer.alloc(0));
+  }
+
   return new Promise((resolve, reject) => {
     const chunks = [];
 
@@ -75,7 +85,13 @@ function getForwardHeaders(req) {
   const headers = {};
 
   Object.entries(req.headers).forEach(([key, value]) => {
-    if (HOP_BY_HOP_HEADERS.has(key.toLowerCase()) || value === undefined) {
+    const lowerKey = key.toLowerCase();
+
+    if (
+      HOP_BY_HOP_HEADERS.has(lowerKey) ||
+      lowerKey === "origin" ||
+      value === undefined
+    ) {
       return;
     }
 
@@ -113,11 +129,21 @@ export default async function handler(req, res) {
       method === "GET" || method === "HEAD"
         ? undefined
         : await readRequestBody(req);
-    const upstreamResponse = await fetch(targetUrl, {
-      method,
-      headers: getForwardHeaders(req),
-      body
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let upstreamResponse;
+
+    try {
+      upstreamResponse = await fetch(targetUrl, {
+        method,
+        headers: getForwardHeaders(req),
+        body,
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
     const responseBuffer = Buffer.from(await upstreamResponse.arrayBuffer());
 
     copyResponseHeaders(upstreamResponse.headers, res);
