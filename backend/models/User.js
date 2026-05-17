@@ -43,22 +43,20 @@ const userSchema = new mongoose.Schema({
     }
 }, {timestamps : true});
 
-userSchema.pre("validate", function normalizeAndValidateAdminRole(next) {
+userSchema.pre("validate", function normalizeAndValidateAdminRole() {
     if (this.email) {
         this.email = String(this.email).trim().toLowerCase();
     }
 
     if (this.role !== "admin") {
-        return next();
+        return;
     }
 
     const reservedAdminEmail = getAdminEmail();
 
     if (!reservedAdminEmail || this.email !== reservedAdminEmail) {
-        return next(new Error("Only the configured ADMIN_EMAIL account can hold the admin role."));
+        throw new Error("Only the configured ADMIN_EMAIL account can hold the admin role.");
     }
-
-    next();
 });
 
 module.exports  = mongoose.model("User", userSchema);
