@@ -14,6 +14,10 @@ export function getApiErrorMessage(error, fallbackMessage) {
       : "Backend server se connection nahi ho raha. Windows PowerShell me `npm` block ho sakta hai, isliye root folder se `./backend.cmd` ya `run-dev.cmd` chalao. MongoDB bhi running hona chahiye.";
   }
 
+  if (error?.code === "ECONNABORTED") {
+    return "Login request timeout ho gayi. Backend cold start, proxy, ya deploy issue check karo aur dobara try karo.";
+  }
+
   if (
     error?.response?.status === 500 &&
     (
