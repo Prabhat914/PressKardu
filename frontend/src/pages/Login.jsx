@@ -116,13 +116,13 @@ function Login() {
             <AuthVisibilityField
               label="Email"
               name="email"
-              hiddenType="password"
-              visibleType="email"
+              hiddenType="email"
               placeholder="name@example.com"
               onChange={handleChange}
               value={form.email}
               required
               autoComplete="email"
+              allowToggle={false}
             />
 
             <AuthVisibilityField

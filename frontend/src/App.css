@@ -529,6 +529,26 @@ body {
   cursor: not-allowed;
 }
 
+.auth-form .auth-field__toggle,
+.auth-form .auth-field__toggle:hover:not(:disabled),
+.auth-form .auth-field__toggle:focus-visible {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  box-shadow: none;
+  filter: none;
+}
+
+.auth-form .auth-field__toggle::after {
+  content: none;
+}
+
+.auth-form .auth-field__toggle:hover:not(:disabled) {
+  transform: translateY(calc(-50% - 1px));
+}
+
 .auth-form__secondary {
   background: #f5ede1 !important;
   color: #704d26 !important;

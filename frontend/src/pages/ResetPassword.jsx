@@ -80,12 +80,12 @@ function ResetPassword() {
           <form className="auth-form" onSubmit={handleReset}>
             <AuthVisibilityField
               label="Email"
-              hiddenType="password"
-              visibleType="email"
+              hiddenType="email"
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               required
               autoComplete="email"
+              allowToggle={false}
             />
 
             <div className="auth-form__split">
