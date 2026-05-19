@@ -168,7 +168,9 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
   }
 
   if (!allowConsoleOtpFallback()) {
-    throw new Error(`No ${channel.toUpperCase()} OTP provider is configured.`);
+    const error = new Error(`No ${channel.toUpperCase()} OTP provider is configured.`);
+    error.statusCode = 503;
+    throw error;
   }
 
   console.log(`[OTP:${channel}] ${target} -> ${otp}`);
