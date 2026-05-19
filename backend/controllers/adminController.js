@@ -17,6 +17,23 @@ function pushVerificationHistory(shop, status, notes, source, actor) {
   });
 }
 
+function getPayoutDestination(shop) {
+  const payoutDetails = shop?.payoutDetails || {};
+
+  if (payoutDetails.upiId) {
+    return `UPI: ${payoutDetails.upiId}`;
+  }
+
+  if (payoutDetails.accountNumber && payoutDetails.ifscCode) {
+    const maskedAccount = payoutDetails.accountNumber.length > 4
+      ? `****${payoutDetails.accountNumber.slice(-4)}`
+      : payoutDetails.accountNumber;
+    return `${payoutDetails.bankName || "Bank"} ${maskedAccount} (${payoutDetails.ifscCode})`;
+  }
+
+  return "";
+}
+
 exports.getAdminOverview = async (req, res) => {
   const [orders, shops, users] = await Promise.all([
     Order.find({}).populate("pressShop", "shopName ownerUser"),
@@ -40,6 +57,15 @@ exports.getAdminOverview = async (req, res) => {
   const revenue = refreshedOrders
     .filter((order) => order.paymentStatus === "paid")
     .reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
+  const platformRevenue = refreshedOrders
+    .filter((order) => order.paymentStatus === "paid")
+    .reduce((sum, order) => sum + Number(order.pricing?.platformFee || 0), 0);
+  const pendingPayoutAmount = refreshedOrders
+    .filter((order) => order.paymentMode === "online" && order.paymentStatus === "paid" && order.payoutStatus === "pending")
+    .reduce((sum, order) => sum + Number(order.pricing?.shopEarning || 0), 0);
+  const settledPayoutAmount = refreshedOrders
+    .filter((order) => order.payoutStatus === "settled")
+    .reduce((sum, order) => sum + Number(order.payoutSettlement?.amount || order.pricing?.shopEarning || 0), 0);
 
   const vendorMap = refreshedOrders.reduce((accumulator, order) => {
     const shopId = String(order.pressShop?._id || "");
@@ -103,6 +129,20 @@ exports.getAdminOverview = async (req, res) => {
       pressShop: order.pressShop
     }));
 
+  const pendingPayoutOrders = await Order.find({
+    paymentMode: "online",
+    paymentStatus: "paid",
+    payoutStatus: "pending",
+    status: { $in: ["delivered", "completed"] }
+  })
+    .populate("pressShop")
+    .populate("user", "name email phone role")
+    .sort({ updatedAt: -1 })
+    .then((ordersWithRelations) => ordersWithRelations.map((order) => ({
+      ...order.toObject(),
+      payoutDestination: getPayoutDestination(order.pressShop)
+    })));
+
   res.json({
     users,
     shops: shops.length,
@@ -111,10 +151,14 @@ exports.getAdminOverview = async (req, res) => {
     totalOrders: refreshedOrders.length,
     activeOrders: activeOrders.length,
     revenue,
+    platformRevenue,
+    pendingPayoutAmount,
+    settledPayoutAmount,
     otpProviders: getOtpDeliveryStatus(),
     topVendors,
     offlineHeavyShops,
-    overduePickupOrders
+    overduePickupOrders,
+    pendingPayoutOrders
   });
 };
 
@@ -249,5 +293,64 @@ exports.approveOfflineSubscription = async (req, res) => {
   res.json({
     message: "Offline subscription approved successfully.",
     shop: refreshedShop
+  });
+};
+
+exports.settleOrderPayout = async (req, res) => {
+  const order = await Order.findById(req.params.id)
+    .populate("pressShop")
+    .populate("user", "name email phone role");
+
+  if (!order) {
+    return res.status(404).json({ message: "Order not found" });
+  }
+
+  if (order.paymentMode !== "online" || order.paymentStatus !== "paid") {
+    return res.status(400).json({ message: "Sirf paid online orders ka payout settle kiya ja sakta hai." });
+  }
+
+  if (order.payoutStatus === "settled") {
+    return res.status(400).json({ message: "Is order ka payout pehle hi settled hai." });
+  }
+
+  if (!["delivered", "completed"].includes(order.status)) {
+    return res.status(400).json({ message: "Payout settle karne se pehle order delivered ya completed hona chahiye." });
+  }
+
+  const destinationLabel = getPayoutDestination(order.pressShop);
+
+  if (!destinationLabel) {
+    return res.status(400).json({ message: "Shopkeeper payout details missing hain. Pehle unka payout account setup karvao." });
+  }
+
+  order.payoutStatus = "settled";
+  order.payoutSettlement = {
+    amount: Number(order.pricing?.shopEarning || 0),
+    destinationLabel,
+    reference: String(req.body.settlementReference || "").trim(),
+    notes: String(req.body.settlementNotes || "").trim(),
+    settledAt: new Date(),
+    settledBy: req.user.id
+  };
+
+  await order.save();
+
+  if (order.pressShop?.ownerUser) {
+    await createNotification({
+      user: order.pressShop.ownerUser,
+      order: order._id,
+      title: "Payout settled",
+      body: `Rs. ${Number(order.pricing?.shopEarning || 0)} settlement recorded for ${order.pressShop.shopName}.`,
+      type: "payment",
+      metadata: {
+        payoutStatus: "settled",
+        reference: order.payoutSettlement.reference
+      }
+    });
+  }
+
+  res.json({
+    message: "Payout settled successfully.",
+    order
   });
 };

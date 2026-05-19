@@ -9,7 +9,7 @@ import LoadingCards from "../components/LoadingCards";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
 import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableShop } from "../utils/pressShops";
-import { getStoredUser } from "../utils/session";
+import { enableGuestDemo, getStoredUser, isGuestDemo } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
 
 function shopSupportsOnlinePayments(shop) {
@@ -80,6 +80,7 @@ function Home() {
   const requestFormRef = useRef(null);
 
   const currentUser = getStoredUser();
+  const guestDemo = isGuestDemo();
   const isUser = currentUser?.role !== "presswala";
   const averagePrice =
     shops.length > 0
@@ -354,6 +355,12 @@ function Home() {
   return (
     <main className="home-shops">
       {!currentUser && <OpeningIntro />}
+      {!currentUser && guestDemo && (
+        <Toast
+          message="Guest demo active hai. Aap shops, maps, pricing, aur details explore kar sakte ho. Booking ke liye login zaroori rahega."
+          tone="info"
+        />
+      )}
 
       <section className="home-shops__hero">
         <div className="home-shops__hero-grid">
@@ -377,6 +384,19 @@ function Home() {
             </div>
 
             <div className="home-shops__actions">
+              {!currentUser && (
+                <button
+                  className="home-shops__link home-shops__link--secondary"
+                  type="button"
+                  onClick={() => {
+                    enableGuestDemo();
+                    setOrderMessageTone("info");
+                    setOrderMessage("Guest demo start ho gaya. Shops, maps, aur pricing freely explore karo.");
+                  }}
+                >
+                  {guestDemo ? "Guest demo active" : "Explore as guest"}
+                </button>
+              )}
               <Link className="home-shops__link" to="/orders">My orders</Link>
               <Link className="home-shops__link home-shops__link--secondary" to="/shops">Full map view</Link>
             </div>
@@ -511,7 +531,7 @@ function Home() {
             onAction={() => {
               if (!currentUser) {
                 setOrderMessageTone("warning");
-                setOrderMessage("Login karo, phir request form khul jayega.");
+                setOrderMessage(guestDemo ? "Guest demo me browsing allowed hai, lekin live request bhejne ke liye login zaroori hai." : "Login karo, phir request form khul jayega.");
                 navigate("/login");
                 return;
               }

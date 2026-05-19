@@ -4,7 +4,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const requireRole = require("../middleware/requireRole");
 const { body, validationResult } = require("express-validator");
-const { getAdminOverview, getAdminShops, reviewAdminShop, approveOfflineSubscription } = require("../controllers/adminController");
+const { getAdminOverview, getAdminShops, reviewAdminShop, approveOfflineSubscription, settleOrderPayout } = require("../controllers/adminController");
 
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
@@ -31,5 +31,12 @@ router.patch("/shops/:id/subscription/approve",
   authMiddleware,
   requireRole("admin"),
   approveOfflineSubscription);
+router.patch("/orders/:id/payout/settle",
+  authMiddleware,
+  requireRole("admin"),
+  body("settlementReference").trim().isLength({ min: 3, max: 100 }).withMessage("Settlement reference is required"),
+  body("settlementNotes").optional({ values: "falsy" }).trim().isLength({ max: 300 }).withMessage("Settlement note is too long"),
+  validateRequest,
+  settleOrderPayout);
 
 module.exports = router;

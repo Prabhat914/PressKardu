@@ -4,7 +4,7 @@ import LazyPressScene from "../components/LazyPressScene";
 import OpeningIntro from "../components/OpeningIntro";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/apiError";
-import { saveSession } from "../utils/session";
+import { enableGuestDemo, saveSession } from "../utils/session";
 import Toast from "../components/Toast";
 import AuthVisibilityField from "../components/AuthVisibilityField";
 
@@ -144,6 +144,18 @@ function Login() {
 
           <p className="auth-card__switch">
             New here? <Link to="/signup">Create an account</Link>
+          </p>
+          <p className="auth-card__switch">
+            <button
+              type="button"
+              className="auth-form__secondary"
+              onClick={() => {
+                enableGuestDemo();
+                navigate("/");
+              }}
+            >
+              Explore as guest
+            </button>
           </p>
           <p className="auth-card__switch">
             <Link to="/forgot-password">Forgot password?</Link>

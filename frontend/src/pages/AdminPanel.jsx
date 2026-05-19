@@ -4,7 +4,6 @@ import LoadingCards from "../components/LoadingCards";
 import MiniChart from "../components/MiniChart";
 import Toast from "../components/Toast";
 import { getApiErrorMessage } from "../utils/apiError";
-import { buildFallbackShops, enrichShopCollection, DEFAULT_LOCATION } from "../utils/pressShops";
 
 function AdminPanel() {
   const [shops, setShops] = useState([]);
@@ -12,6 +11,7 @@ function AdminPanel() {
   const [message, setMessage] = useState("");
   const [reviewingShopId, setReviewingShopId] = useState("");
   const [reviewNotes, setReviewNotes] = useState({});
+  const [payoutForms, setPayoutForms] = useState({});
   const [isLiveAdminData, setIsLiveAdminData] = useState(true);
 
   useEffect(() => {
@@ -93,6 +93,33 @@ function AdminPanel() {
   const otpProviders = overview?.otpProviders;
   const pendingOfflineSubscriptions = shops.filter((shop) => shop.pendingSubscription?.paymentMode === "offline");
   const offlineHeavyWatchlist = overview?.offlineHeavyShops || [];
+  const pendingPayoutOrders = overview?.pendingPayoutOrders || [];
+
+  const handleSettlePayout = async (orderId) => {
+    const currentForm = payoutForms[orderId] || {};
+
+    try {
+      setReviewingShopId(`payout-${orderId}`);
+      const res = await API.patch(`/admin/orders/${orderId}/payout/settle`, {
+        settlementReference: currentForm.reference || "",
+        settlementNotes: currentForm.notes || ""
+      });
+      setOverview((current) => {
+        const safeCurrent = current || {};
+        return {
+          ...safeCurrent,
+          pendingPayoutOrders: (safeCurrent.pendingPayoutOrders || []).filter((order) => order._id !== orderId),
+          pendingPayoutAmount: Math.max(0, Number(safeCurrent.pendingPayoutAmount || 0) - Number(res.data.order?.pricing?.shopEarning || 0)),
+          settledPayoutAmount: Number(safeCurrent.settledPayoutAmount || 0) + Number(res.data.order?.pricing?.shopEarning || 0)
+        };
+      });
+      setMessage(res.data.message || "Payout settled.");
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Payout settle nahi ho paaya."));
+    } finally {
+      setReviewingShopId("");
+    }
+  };
 
   return (
     <main className="dashboard-page">
@@ -129,6 +156,16 @@ function AdminPanel() {
           <p>Paid orders processed through the marketplace.</p>
           <MiniChart points={revenueTrend} />
         </article>
+        <article className="dashboard-card">
+          <span className="dashboard-card__label">Platform fee earned</span>
+          <strong>Rs. {overview?.platformRevenue ?? 0}</strong>
+          <p>Commission retained by the marketplace from paid online orders.</p>
+        </article>
+        <article className="dashboard-card">
+          <span className="dashboard-card__label">Pending shop payouts</span>
+          <strong>Rs. {overview?.pendingPayoutAmount ?? 0}</strong>
+          <p>Amount still waiting to be transferred from platform to shopkeepers.</p>
+        </article>
       </section>
 
       {otpProviders && (
@@ -151,6 +188,57 @@ function AdminPanel() {
       )}
 
       <section className="dashboard-grid">
+        {pendingPayoutOrders.length > 0 && (
+          <article className="dashboard-card dashboard-card--wide">
+            <p className="dashboard-eyebrow">Payout settlement</p>
+            <h2>Pending shopkeeper payouts</h2>
+            <div className="offer-stack">
+              {pendingPayoutOrders.map((order) => (
+                <div key={`payout-${order._id}`} className="offer-card">
+                  <strong>{order.pressShop?.shopName || "Press shop"}</strong>
+                  <span>Customer: {order.user?.name || "Customer"} | Order total: Rs. {order.totalPrice}</span>
+                  <span>Platform fee: Rs. {order.pricing?.platformFee || 0} | Shop earning: Rs. {order.pricing?.shopEarning || 0}</span>
+                  <span>Payout to: {order.payoutDestination || "Missing payout details"}</span>
+                  <input
+                    className="auth-field__input"
+                    placeholder="Settlement reference"
+                    value={payoutForms[order._id]?.reference || ""}
+                    onChange={(event) => setPayoutForms((current) => ({
+                      ...current,
+                      [order._id]: {
+                        ...current[order._id],
+                        reference: event.target.value
+                      }
+                    }))}
+                  />
+                  <input
+                    className="auth-field__input"
+                    placeholder="Settlement note"
+                    value={payoutForms[order._id]?.notes || ""}
+                    onChange={(event) => setPayoutForms((current) => ({
+                      ...current,
+                      [order._id]: {
+                        ...current[order._id],
+                        notes: event.target.value
+                      }
+                    }))}
+                  />
+                  <div className="auth-location-card__actions">
+                    <button
+                      type="button"
+                      className="auth-form__secondary"
+                      disabled={reviewingShopId === `payout-${order._id}`}
+                      onClick={() => handleSettlePayout(order._id)}
+                    >
+                      {reviewingShopId === `payout-${order._id}` ? "Settling..." : "Mark payout settled"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        )}
+
         {pendingOfflineSubscriptions.length > 0 && (
           <article className="dashboard-card dashboard-card--wide">
             <p className="dashboard-eyebrow">Subscriptions</p>

@@ -94,6 +94,29 @@ const orderSchema = new mongoose.Schema({
         enum: ["pending", "not_applicable", "settled"],
         default: "not_applicable"
     },
+    payoutSettlement: {
+        amount: {
+            type: Number,
+            default: 0
+        },
+        destinationLabel: {
+            type: String,
+            trim: true
+        },
+        reference: {
+            type: String,
+            trim: true
+        },
+        notes: {
+            type: String,
+            trim: true
+        },
+        settledAt: Date,
+        settledBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }
+    },
     subscriptionPlanSnapshot: {
         type: String,
         enum: ["basic", "pro", "premium"],

@@ -43,7 +43,13 @@ function Dashboard() {
     shopPhotoDataUrl: "",
     phoneVerifiedAt: "",
     phoneOtp: "",
-    phoneOtpVerified: false
+    phoneOtpVerified: false,
+    payoutAccountHolderName: "",
+    payoutUpiId: "",
+    payoutBankName: "",
+    payoutAccountNumber: "",
+    payoutIfscCode: "",
+    payoutNotes: ""
   });
 
   const applyProfilePayload = (profile) => {
@@ -69,7 +75,13 @@ function Dashboard() {
       shopPhotoDataUrl: profile.pressShop?.shopPhotoDataUrl || "",
       phoneVerifiedAt: profile.pressShop?.phoneVerifiedAt || "",
       phoneOtp: "",
-      phoneOtpVerified: false
+      phoneOtpVerified: false,
+      payoutAccountHolderName: profile.pressShop?.payoutDetails?.accountHolderName || "",
+      payoutUpiId: profile.pressShop?.payoutDetails?.upiId || "",
+      payoutBankName: profile.pressShop?.payoutDetails?.bankName || "",
+      payoutAccountNumber: profile.pressShop?.payoutDetails?.accountNumber || "",
+      payoutIfscCode: profile.pressShop?.payoutDetails?.ifscCode || "",
+      payoutNotes: profile.pressShop?.payoutDetails?.notes || ""
     });
     setSubscriptionPlans(Array.isArray(profile.subscriptionPlans) ? profile.subscriptionPlans : []);
     setPaymentCapabilities(profile.paymentCapabilities || null);
@@ -219,7 +231,15 @@ function Dashboard() {
           serviceRadiusKm: profileForm.serviceRadiusKm === "" ? undefined : Number(profileForm.serviceRadiusKm),
           latitude: profileForm.latitude === "" ? undefined : Number(profileForm.latitude),
           longitude: profileForm.longitude === "" ? undefined : Number(profileForm.longitude),
-          services: profileForm.services.split(",").map((item) => item.trim()).filter(Boolean)
+          services: profileForm.services.split(",").map((item) => item.trim()).filter(Boolean),
+          payoutDetails: {
+            accountHolderName: profileForm.payoutAccountHolderName,
+            upiId: profileForm.payoutUpiId,
+            bankName: profileForm.payoutBankName,
+            accountNumber: profileForm.payoutAccountNumber,
+            ifscCode: profileForm.payoutIfscCode,
+            notes: profileForm.payoutNotes
+          }
         });
       }
 
@@ -260,6 +280,15 @@ function Dashboard() {
   }).length;
   const currentPlanOrderLimit = Number(currentPlanConfig?.monthlyOrderLimit || 0);
   const currentPlanRemainingOrders = currentPlanOrderLimit > 0 ? Math.max(0, currentPlanOrderLimit - currentMonthCount) : null;
+  const settledPayoutOrders = orders.filter((order) => order.payoutStatus === "settled");
+  const pendingPayoutOrders = orders.filter((order) => order.payoutStatus === "pending");
+  const pendingPayoutAmount = pendingPayoutOrders.reduce((sum, order) => sum + Number(order.pricing?.shopEarning || 0), 0);
+  const settledPayoutAmount = settledPayoutOrders.reduce((sum, order) => sum + Number(order.payoutSettlement?.amount || order.pricing?.shopEarning || 0), 0);
+  const payoutDestinationPreview = profileForm.payoutUpiId
+    ? `UPI: ${profileForm.payoutUpiId}`
+    : profileForm.payoutAccountNumber && profileForm.payoutIfscCode
+    ? `${profileForm.payoutBankName || "Bank"} ending ${profileForm.payoutAccountNumber.slice(-4)} (${profileForm.payoutIfscCode})`
+    : "";
 
   const handleSubscriptionChange = async (planId, paymentMode) => {
     try {
@@ -483,6 +512,35 @@ function Dashboard() {
           </article>
         )}
 
+        {currentUser?.role === "presswala" && (
+          <article className="dashboard-card">
+            <p className="dashboard-eyebrow">Money flow</p>
+            <h2>Payout tracking</h2>
+            <div className="offer-stack">
+              <div className="offer-card">
+                <strong>Customer pays</strong>
+                <span>Online amount first reaches the platform gateway account.</span>
+              </div>
+              <div className="offer-card">
+                <strong>Platform fee</strong>
+                <span>Commission is auto-calculated from your active membership plan.</span>
+              </div>
+              <div className="offer-card">
+                <strong>Shop payout</strong>
+                <span>{payoutDestinationPreview || "Add UPI or bank details below so admin can settle payouts."}</span>
+              </div>
+              <div className="offer-card">
+                <strong>Rs. {pendingPayoutAmount}</strong>
+                <span>Pending payout amount across {pendingPayoutOrders.length} paid orders.</span>
+              </div>
+              <div className="offer-card">
+                <strong>Rs. {settledPayoutAmount}</strong>
+                <span>Already marked settled across {settledPayoutOrders.length} orders.</span>
+              </div>
+            </div>
+          </article>
+        )}
+
         <article className="dashboard-card dashboard-card--wide">
           <p className="dashboard-eyebrow">Profile</p>
           <h2>{currentUser?.role === "presswala" ? "Account and shop settings" : "Account settings"}</h2>
@@ -596,6 +654,46 @@ function Dashboard() {
                   <span className="auth-field__label">About</span>
                   <input className="auth-field__input" name="about" value={profileForm.about} onChange={handleProfileChange} />
                 </label>
+
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Payout account</strong>
+                    <span>Customer online payments pehle platform account me aate hain. Shop payout settle karne ke liye yahan UPI ya bank details save karo.</span>
+                  </div>
+
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Account holder name</span>
+                      <input className="auth-field__input" name="payoutAccountHolderName" value={profileForm.payoutAccountHolderName} onChange={handleProfileChange} placeholder="Owner full name" />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">UPI ID</span>
+                      <input className="auth-field__input" name="payoutUpiId" value={profileForm.payoutUpiId} onChange={handleProfileChange} placeholder="name@bank" />
+                    </label>
+                  </div>
+
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Bank name</span>
+                      <input className="auth-field__input" name="payoutBankName" value={profileForm.payoutBankName} onChange={handleProfileChange} placeholder="Bank name" />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Account number</span>
+                      <input className="auth-field__input" name="payoutAccountNumber" value={profileForm.payoutAccountNumber} onChange={handleProfileChange} placeholder="Account number" />
+                    </label>
+                  </div>
+
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">IFSC code</span>
+                      <input className="auth-field__input" name="payoutIfscCode" value={profileForm.payoutIfscCode} onChange={handleProfileChange} placeholder="SBIN0001234" />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Payout note</span>
+                      <input className="auth-field__input" name="payoutNotes" value={profileForm.payoutNotes} onChange={handleProfileChange} placeholder="Preferred settlement note" />
+                    </label>
+                  </div>
+                </div>
               </>
             )}
 

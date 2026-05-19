@@ -60,6 +60,56 @@ function parseOptionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function sanitizePayoutDetails(payload = {}) {
+  return {
+    accountHolderName: String(payload.accountHolderName || "").trim(),
+    upiId: String(payload.upiId || "").trim(),
+    bankName: String(payload.bankName || "").trim(),
+    accountNumber: String(payload.accountNumber || "").trim(),
+    ifscCode: String(payload.ifscCode || "").trim().toUpperCase(),
+    notes: String(payload.notes || "").trim()
+  };
+}
+
+function validatePayoutDetails(payoutDetails) {
+  const hasUpi = Boolean(payoutDetails.upiId);
+  const bankFields = [
+    payoutDetails.accountHolderName,
+    payoutDetails.bankName,
+    payoutDetails.accountNumber,
+    payoutDetails.ifscCode
+  ];
+  const hasAnyBankField = bankFields.some(Boolean);
+  const hasCompleteBankProfile = bankFields.every(Boolean);
+
+  if (!hasUpi && !hasAnyBankField) {
+    return { valid: true };
+  }
+
+  if (!hasUpi && hasAnyBankField && !hasCompleteBankProfile) {
+    return {
+      valid: false,
+      message: "Bank payout ke liye account holder name, bank name, account number, aur IFSC sab bharna zaroori hai."
+    };
+  }
+
+  if (payoutDetails.upiId && !/^[\w.-]{2,256}@[A-Za-z]{2,64}$/i.test(payoutDetails.upiId)) {
+    return {
+      valid: false,
+      message: "UPI id valid format me enter karo."
+    };
+  }
+
+  if (payoutDetails.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(payoutDetails.ifscCode)) {
+    return {
+      valid: false,
+      message: "IFSC code valid format me enter karo."
+    };
+  }
+
+  return { valid: true };
+}
+
 function pushVerificationHistory(shop, status, notes, source, actor) {
   shop.verificationHistory = Array.isArray(shop.verificationHistory) ? shop.verificationHistory : [];
   shop.verificationHistory.push({
@@ -210,6 +260,20 @@ exports.updateProfile = async (req, res) => {
           return res.status(400).json({ message: "Service radius must be between 1 and 50 km" });
         }
         pressShop.serviceRadiusKm = nextServiceRadius;
+      }
+
+      if (req.body.payoutDetails !== undefined) {
+        const nextPayoutDetails = sanitizePayoutDetails(req.body.payoutDetails);
+        const payoutValidation = validatePayoutDetails(nextPayoutDetails);
+
+        if (!payoutValidation.valid) {
+          return res.status(400).json({ message: payoutValidation.message });
+        }
+
+        pressShop.payoutDetails = {
+          ...nextPayoutDetails,
+          updatedAt: new Date()
+        };
       }
 
       const activePhone = normalizedNextPhone || normalizePhone(user.phone);

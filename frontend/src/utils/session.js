@@ -1,3 +1,5 @@
+const GUEST_DEMO_KEY = "presskardu_guest_demo";
+
 export function getStoredUser() {
   const storedUser = localStorage.getItem("user");
 
@@ -18,6 +20,8 @@ export function isAuthenticated() {
 }
 
 export function saveSession({ token, user }) {
+  localStorage.removeItem(GUEST_DEMO_KEY);
+
   if (token) {
     localStorage.setItem("token", token);
   }
@@ -30,6 +34,19 @@ export function saveSession({ token, user }) {
 export function clearSession() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+}
+
+export function enableGuestDemo() {
+  clearSession();
+  localStorage.setItem(GUEST_DEMO_KEY, "1");
+}
+
+export function disableGuestDemo() {
+  localStorage.removeItem(GUEST_DEMO_KEY);
+}
+
+export function isGuestDemo() {
+  return localStorage.getItem(GUEST_DEMO_KEY) === "1";
 }
 
 export function getFavoriteShopIds() {

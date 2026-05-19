@@ -6,7 +6,7 @@ import OpeningIntro from "../components/OpeningIntro";
 import LocationPickerMap from "../components/LocationPickerMap";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/apiError";
-import { saveSession } from "../utils/session";
+import { enableGuestDemo, saveSession } from "../utils/session";
 import Toast from "../components/Toast";
 import AuthVisibilityField from "../components/AuthVisibilityField";
 
@@ -536,6 +536,18 @@ function Signup() {
 
           <p className="auth-card__switch">
             Already have an account? <Link to="/login">Login</Link>
+          </p>
+          <p className="auth-card__switch">
+            <button
+              type="button"
+              className="auth-form__secondary"
+              onClick={() => {
+                enableGuestDemo();
+                navigate("/");
+              }}
+            >
+              Explore as guest
+            </button>
           </p>
         </section>
       </section>

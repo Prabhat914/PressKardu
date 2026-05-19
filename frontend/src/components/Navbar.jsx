@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import API from "../services/api";
-import { clearSession, getStoredUser } from "../utils/session";
+import { clearSession, disableGuestDemo, enableGuestDemo, getStoredUser, isGuestDemo } from "../utils/session";
 
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = getStoredUser();
+  const guestDemo = isGuestDemo();
   const isShopkeeper = currentUser?.role === "presswala";
   const isAdmin = currentUser?.role === "admin";
   const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
@@ -16,7 +17,11 @@ function Navbar() {
   const searchPanelRef = useRef(null);
 
   useEffect(() => {
-    setIsSearchOpen(false);
+    const frameId = window.requestAnimationFrame(() => {
+      setIsSearchOpen(false);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -47,8 +52,11 @@ function Navbar() {
 
   useEffect(() => {
     if (!currentUser) {
-      setUnreadCount(0);
-      return undefined;
+      const frameId = window.requestAnimationFrame(() => {
+        setUnreadCount(0);
+      });
+
+      return () => window.cancelAnimationFrame(frameId);
     }
 
     let isMounted = true;
@@ -80,7 +88,13 @@ function Navbar() {
 
   const handleLogout = () => {
     clearSession();
+    disableGuestDemo();
     navigate("/login");
+  };
+
+  const handleGuestExplore = () => {
+    enableGuestDemo();
+    navigate("/");
   };
 
   const handleSearchSubmit = (event) => {
@@ -174,6 +188,15 @@ function Navbar() {
             </>
           ) : (
             <>
+              {guestDemo ? (
+                <div className="site-nav__user">
+                  <span>Guest demo</span>
+                  <small>Browsing without signup</small>
+                </div>
+              ) : null}
+              <button className="site-nav__button site-nav__button--ghost" type="button" onClick={handleGuestExplore}>
+                {guestDemo ? "Continue guest demo" : "Explore as guest"}
+              </button>
               <NavLink className="site-nav__button site-nav__button--ghost" to="/login">
                 Login
               </NavLink>
