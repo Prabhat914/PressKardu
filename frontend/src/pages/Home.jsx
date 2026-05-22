@@ -12,6 +12,72 @@ import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableS
 import { enableGuestDemo, getStoredUser, isGuestDemo } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
 
+const SERVICE_FLOW = [
+  {
+    step: "01",
+    title: "Book Pickup",
+    description: "Choose your preferred shop, time slot, and cloth count in under a minute.",
+    icon: "Pickup"
+  },
+  {
+    step: "02",
+    title: "We Collect Clothes",
+    description: "A local pickup partner collects your garments from your doorstep.",
+    icon: "Collect"
+  },
+  {
+    step: "03",
+    title: "Clothes Are Ironed",
+    description: "Each item is pressed, folded, and quality-checked before dispatch.",
+    icon: "Press"
+  },
+  {
+    step: "04",
+    title: "Delivered Back",
+    description: "Freshly ironed clothes come back ready to wear and easy to track.",
+    icon: "Deliver"
+  }
+];
+
+const PRICING_SHOWCASE = [
+  {
+    item: "Shirt",
+    price: "Rs. 10",
+    note: "Daily wear pressing"
+  },
+  {
+    item: "Pant",
+    price: "Rs. 15",
+    note: "Sharp office finish"
+  },
+  {
+    item: "Saree",
+    price: "Rs. 40",
+    note: "Careful pleat handling"
+  }
+];
+
+const TRUST_VISUALS = [
+  {
+    title: "Steam-finish quality",
+    caption: "Professional pressing with cleaner folds and ready-to-wear finish.",
+    image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Doorstep pickup bags",
+    caption: "Collection-ready flow for apartment buildings, PGs, and busy households.",
+    image: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=900&q=80"
+  },
+  {
+    title: "Fast local delivery",
+    caption: "Built for city customers who want turnaround speed without calling around.",
+    image: "https://images.unsplash.com/photo-1556742393-d75f468bfcb0?auto=format&fit=crop&w=900&q=80"
+  }
+];
+
+const WHATSAPP_NUMBER = String(import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999")
+  .replace(/\D/g, "");
+
 function shopSupportsOnlinePayments(shop) {
   return ["pro", "premium"].includes(String(shop?.subscriptionPlan || "").toLowerCase()) && shop?.subscriptionStatus === "active";
 }
@@ -97,7 +163,6 @@ function Home() {
       .includes(shopSearch.trim().toLowerCase())
   );
   const orderEstimate = selectedShop ? estimateOrderBenefits(selectedShop, orderForm) : null;
-
   const applyShopCollection = (incomingShops, nextLocation, nextStatus) => {
     setShops(enrichShopCollection(incomingShops, nextLocation));
     setStatus(nextStatus);
@@ -256,6 +321,34 @@ function Home() {
     }));
   };
 
+  const handlePrimaryCta = () => {
+    if (!currentUser) {
+      navigate("/signup");
+      return;
+    }
+
+    handleUseCurrentLocation();
+  };
+
+  const handleSecondaryCta = () => {
+    if (shops.length > 0) {
+      document.querySelector(".home-shops__section-head")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+      return;
+    }
+
+    navigate("/shops");
+  };
+
+  const handleWhatsAppCta = () => {
+    const message = encodeURIComponent(
+      "Hi PressKardu, I want to schedule a cloth ironing pickup."
+    );
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, "_blank", "noopener,noreferrer");
+  };
+
   const handleRequestOrder = async (event) => {
     event.preventDefault();
 
@@ -365,16 +458,23 @@ function Home() {
       <section className="home-shops__hero">
         <div className="home-shops__hero-grid">
           <div className="home-shops__hero-copy">
+            <div className="home-shops__hero-logo-wrap">
+              <img className="home-shops__hero-logo" src="/presskardu-logo.png" alt="PressKardu professional ironing service logo" />
+            </div>
             <div className="home-shops__hero-badges">
               <span>Animated local-first marketplace</span>
               <span>Pickup to payment in one polished flow</span>
             </div>
             <p className="home-shops__eyebrow">PressKardu</p>
             <div className="home-shops__eyebrow-line" />
-            <h1>Local press pickup, premium finish, one smooth flow.</h1>
+            <h1>Professional cloth ironing at your doorstep.</h1>
             <p className="home-shops__copy">
-              Compare trusted press shops, check pickup speed, and open each
-              location map right inside the card before you book.
+              Schedule pickup, get perfectly pressed clothes delivered back,
+              and compare trusted nearby shops without calling around.
+            </p>
+            <p className="home-shops__hero-subcopy">
+              From apartment pickups to office-wear pressing, PressKardu helps
+              customers book, track, and receive freshly ironed clothes in one smooth local flow.
             </p>
 
             <div className="home-shops__signals">
@@ -384,6 +484,12 @@ function Home() {
             </div>
 
             <div className="home-shops__actions">
+              <button className="home-shops__link" type="button" onClick={handlePrimaryCta}>
+                {currentUser ? "Schedule pickup" : "Book now"}
+              </button>
+              <button className="home-shops__link home-shops__link--secondary" type="button" onClick={handleWhatsAppCta}>
+                WhatsApp us
+              </button>
               {!currentUser && (
                 <button
                   className="home-shops__link home-shops__link--secondary"
@@ -397,8 +503,10 @@ function Home() {
                   {guestDemo ? "Guest demo active" : "Explore as guest"}
                 </button>
               )}
-              <Link className="home-shops__link" to="/orders">My orders</Link>
-              <Link className="home-shops__link home-shops__link--secondary" to="/shops">Full map view</Link>
+              <button className="home-shops__link home-shops__link--secondary" type="button" onClick={handleSecondaryCta}>
+                View service flow
+              </button>
+              <Link className="home-shops__link home-shops__link--secondary" to="/orders">My orders</Link>
             </div>
 
             <div className="home-shops__stats">
@@ -486,6 +594,77 @@ function Home() {
           </div>
         </section>
       )}
+
+      <section className="service-flow">
+        <div className="service-flow__intro">
+          <p className="dashboard-eyebrow">Real service flow</p>
+          <h2>From booking to delivery, every step feels operational.</h2>
+          <p>
+            The product now explains the real ironing journey clearly, so users
+            instantly understand what happens after they tap book.
+          </p>
+        </div>
+        <div className="service-flow__grid">
+          {SERVICE_FLOW.map((item) => (
+            <article key={item.step} className="service-flow__card">
+              <span className="service-flow__step">{item.step}</span>
+              <strong>{item.title}</strong>
+              <p>{item.description}</p>
+              <span className="service-flow__icon">{item.icon}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="pricing-showcase">
+        <div className="pricing-showcase__copy">
+          <p className="dashboard-eyebrow">Pricing snapshot</p>
+          <h2>Simple pricing makes the product feel like a real startup.</h2>
+          <p>
+            Clear starting rates reduce hesitation, especially for first-time users
+            checking whether pickup ironing fits their daily routine.
+          </p>
+          <div className="pricing-showcase__actions">
+            <button className="home-shops__link" type="button" onClick={handlePrimaryCta}>
+              Schedule pickup
+            </button>
+            <button className="home-shops__link home-shops__link--secondary" type="button" onClick={handleWhatsAppCta}>
+              Ask on WhatsApp
+            </button>
+          </div>
+        </div>
+        <div className="pricing-showcase__grid">
+          {PRICING_SHOWCASE.map((item) => (
+            <article key={item.item} className="pricing-showcase__card">
+              <span>{item.item}</span>
+              <strong>{item.price}</strong>
+              <p>{item.note}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="trust-gallery">
+        <div className="trust-gallery__intro">
+          <p className="dashboard-eyebrow">Visual trust</p>
+          <h2>Real-world service visuals make the concept feel believable.</h2>
+          <p>
+            Pickup bags, pressing quality, and delivery-ready garments help the
+            marketplace feel closer to an actual city service than a generic portfolio app.
+          </p>
+        </div>
+        <div className="trust-gallery__grid">
+          {TRUST_VISUALS.map((item) => (
+            <article key={item.title} className="trust-gallery__card">
+              <img src={item.image} alt={item.title} loading="lazy" />
+              <div className="trust-gallery__overlay">
+                <strong>{item.title}</strong>
+                <p>{item.caption}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="home-shops__section-head">
         <div>
@@ -779,6 +958,15 @@ function Home() {
           </ul>
         </article>
       </section>
+
+      <div className="mobile-cta-bar">
+        <button className="mobile-cta-bar__primary" type="button" onClick={handlePrimaryCta}>
+          {currentUser ? "Schedule pickup" : "Book now"}
+        </button>
+        <button className="mobile-cta-bar__secondary" type="button" onClick={handleWhatsAppCta}>
+          WhatsApp
+        </button>
+      </div>
     </main>
   );
 }

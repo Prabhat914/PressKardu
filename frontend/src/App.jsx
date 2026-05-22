@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import "./App.css";
@@ -18,9 +18,25 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 function App() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    return localStorage.getItem("presskardu-theme") || "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("presskardu-theme", theme);
+  }, [theme]);
+
   return (
     <BrowserRouter>
-      <Navbar />
+      <Navbar
+        theme={theme}
+        onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
+      />
       <Suspense fallback={<main className="page-loader"><LoadingCards count={3} /></main>}>
         <Routes>
           <Route path="/" element={<Home />} />
