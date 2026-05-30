@@ -9,6 +9,7 @@ function AdminPanel() {
   const [shops, setShops] = useState([]);
   const [overview, setOverview] = useState(null);
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("info");
   const [reviewingShopId, setReviewingShopId] = useState("");
   const [reviewNotes, setReviewNotes] = useState({});
   const [payoutForms, setPayoutForms] = useState({});
@@ -28,6 +29,7 @@ function AdminPanel() {
         } else {
           setShops([]);
           setIsLiveAdminData(false);
+          setMessageTone("warning");
           setMessage(getApiErrorMessage(shopsRes.reason, "Admin shop queue load nahi ho paayi. Admin login ya backend restart check karo."));
         }
 
@@ -40,6 +42,7 @@ function AdminPanel() {
             activeOrders: 0,
             revenue: 0
           });
+          setMessageTone("warning");
           setMessage((current) => current || getApiErrorMessage(overviewRes.reason, "Admin overview load nahi hua. Shayad current account admin nahi hai."));
         }
       } catch (error) {
@@ -51,6 +54,7 @@ function AdminPanel() {
           activeOrders: 0,
           revenue: 0
         });
+        setMessageTone("warning");
         setMessage(getApiErrorMessage(error, "Admin data unavailable. Backend ya admin session check karo."));
       }
     };
@@ -66,8 +70,10 @@ function AdminPanel() {
         verificationNotes: reviewNotes[shopId] || ""
       });
       setShops((current) => current.map((shop) => (shop._id === shopId ? res.data.shop : shop)));
+      setMessageTone("success");
       setMessage(res.data.message || "Shop updated.");
     } catch (error) {
+      setMessageTone("warning");
       setMessage(getApiErrorMessage(error, "Shop review update nahi ho paaya."));
     } finally {
       setReviewingShopId("");
@@ -94,6 +100,22 @@ function AdminPanel() {
   const pendingOfflineSubscriptions = shops.filter((shop) => shop.pendingSubscription?.paymentMode === "offline");
   const offlineHeavyWatchlist = overview?.offlineHeavyShops || [];
   const pendingPayoutOrders = overview?.pendingPayoutOrders || [];
+  const isProviderFallback = (provider) => String(provider || "").includes("fallback");
+  const reviewActionsByStatus = {
+    pending: [
+      { status: "approved", label: "Approve" },
+      { status: "rejected", label: "Reject" },
+      { status: "pending", label: "Keep pending" }
+    ],
+    approved: [
+      { status: "rejected", label: "Reject / disable" },
+      { status: "pending", label: "Move to pending" }
+    ],
+    rejected: [
+      { status: "approved", label: "Approve again" },
+      { status: "pending", label: "Move to pending" }
+    ]
+  };
 
   const handleSettlePayout = async (orderId) => {
     const currentForm = payoutForms[orderId] || {};
@@ -113,8 +135,10 @@ function AdminPanel() {
           settledPayoutAmount: Number(safeCurrent.settledPayoutAmount || 0) + Number(res.data.order?.pricing?.shopEarning || 0)
         };
       });
+      setMessageTone("success");
       setMessage(res.data.message || "Payout settled.");
     } catch (error) {
+      setMessageTone("warning");
       setMessage(getApiErrorMessage(error, "Payout settle nahi ho paaya."));
     } finally {
       setReviewingShopId("");
@@ -131,7 +155,7 @@ function AdminPanel() {
         </div>
       </section>
 
-      <Toast message={message} tone="warning" />
+      <Toast message={message} tone={messageTone} />
       {message && <p className="orders-page__state">{message}</p>}
 
       <section className="dashboard-grid dashboard-grid--stats">
@@ -173,14 +197,19 @@ function AdminPanel() {
           <article className="dashboard-card">
             <p className="dashboard-eyebrow">OTP delivery</p>
             <h2>Provider readiness</h2>
+            <p className="auth-card__message">
+              Fallback ka matlab real email/SMS provider configured nahi hai. Dev me OTP backend console/logs me dikhta hai; live users ko OTP bhejne ke liye Resend/Brevo ya Twilio/MSG91 keys set karo.
+            </p>
             <div className="offer-stack">
               <div className="offer-card">
-                <strong>Email: {otpProviders.email.configured ? "ready" : "fallback"}</strong>
+                <strong>Email: {otpProviders.email.configured ? "ready" : "dev fallback"}</strong>
                 <span>Provider: {otpProviders.email.provider}</span>
+                {isProviderFallback(otpProviders.email.provider) && <span>Real email abhi send nahi hoga.</span>}
               </div>
               <div className="offer-card">
-                <strong>SMS: {otpProviders.sms.configured ? "ready" : "fallback"}</strong>
+                <strong>SMS: {otpProviders.sms.configured ? "ready" : "dev fallback"}</strong>
                 <span>Provider: {otpProviders.sms.provider}</span>
+                {isProviderFallback(otpProviders.sms.provider) && <span>Real SMS abhi send nahi hoga.</span>}
               </div>
             </div>
           </article>
@@ -261,8 +290,10 @@ function AdminPanel() {
                           setReviewingShopId(`subscription-${shop._id}`);
                           const res = await API.patch(`/admin/shops/${shop._id}/subscription/approve`);
                           setShops((current) => current.map((item) => (item._id === shop._id ? res.data.shop : item)));
+                          setMessageTone("success");
                           setMessage(res.data.message || "Subscription approved.");
                         } catch {
+                          setMessageTone("warning");
                           setMessage("Offline subscription approve nahi ho paya.");
                         } finally {
                           setReviewingShopId("");
@@ -307,15 +338,17 @@ function AdminPanel() {
                 />
                 {isLiveAdminData && (
                   <div className="auth-location-card__actions">
-                    <button type="button" className="auth-form__secondary" disabled={reviewingShopId === shop._id} onClick={() => handleReview(shop._id, "approved")}>
-                      Approve
-                    </button>
-                    <button type="button" className="auth-form__secondary" disabled={reviewingShopId === shop._id} onClick={() => handleReview(shop._id, "rejected")}>
-                      Reject
-                    </button>
-                    <button type="button" className="auth-form__secondary" disabled={reviewingShopId === shop._id} onClick={() => handleReview(shop._id, "pending")}>
-                      Keep pending
-                    </button>
+                    {(reviewActionsByStatus[shop.verificationStatus || "pending"] || reviewActionsByStatus.pending).map((action) => (
+                      <button
+                        key={`${shop._id}-${action.status}`}
+                        type="button"
+                        className="auth-form__secondary"
+                        disabled={reviewingShopId === shop._id || (action.status === shop.verificationStatus && shop.verificationStatus !== "pending")}
+                        onClick={() => handleReview(shop._id, action.status)}
+                      >
+                        {reviewingShopId === shop._id ? "Updating..." : action.label}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
