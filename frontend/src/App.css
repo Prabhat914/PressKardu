@@ -4803,6 +4803,119 @@ body {
   transform: translateY(-2px);
 }
 
+.provider-console {
+  background:
+    linear-gradient(180deg, rgba(12, 12, 13, 0.98), rgba(25, 25, 27, 0.96)),
+    #0c0c0d;
+  color: #f7f7f8;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+
+.provider-console::before,
+.provider-console::after {
+  content: none;
+}
+
+.provider-console .dashboard-eyebrow {
+  color: #8b8b91;
+}
+
+.provider-console h2 {
+  color: #ffffff;
+}
+
+.provider-console__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.provider-console__badge {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7d7dc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.42rem 0.75rem;
+}
+
+.provider-console__grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.provider-console__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.85rem;
+}
+
+.provider-console__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+
+.provider-console__dot--ready {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+}
+
+.provider-console__row strong,
+.provider-console__row code {
+  display: block;
+}
+
+.provider-console__row strong {
+  color: #ffffff;
+  font-size: 0.96rem;
+}
+
+.provider-console__row code {
+  margin-top: 0.22rem;
+  color: #a1a1aa;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+}
+
+.provider-console__row em {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7e7ea;
+  font-style: normal;
+  font-weight: 700;
+  padding: 0.42rem 0.72rem;
+  white-space: nowrap;
+}
+
+.provider-console__note {
+  margin: 1rem 0 0;
+  color: #a1a1aa;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 640px) {
+  .provider-console__row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .provider-console__row em {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
 @media (max-width: 900px) {
   .auth-page--simple {
     padding: 5.75rem 1rem 2rem;

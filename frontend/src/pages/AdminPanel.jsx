@@ -194,24 +194,37 @@ function AdminPanel() {
 
       {otpProviders && (
         <section className="dashboard-grid">
-          <article className="dashboard-card">
-            <p className="dashboard-eyebrow">OTP delivery</p>
-            <h2>Provider readiness</h2>
-            <p className="auth-card__message">
-              Fallback ka matlab real email/SMS provider configured nahi hai. Dev me OTP backend console/logs me dikhta hai; live users ko OTP bhejne ke liye Resend/Brevo ya Twilio/MSG91 keys set karo.
-            </p>
-            <div className="offer-stack">
-              <div className="offer-card">
-                <strong>Email: {otpProviders.email.configured ? "ready" : "dev fallback"}</strong>
-                <span>Provider: {otpProviders.email.provider}</span>
-                {isProviderFallback(otpProviders.email.provider) && <span>Real email abhi send nahi hoga.</span>}
+          <article className="dashboard-card provider-console">
+            <div className="provider-console__head">
+              <div>
+                <p className="dashboard-eyebrow">Delivery</p>
+                <h2>OTP providers</h2>
               </div>
-              <div className="offer-card">
-                <strong>SMS: {otpProviders.sms.configured ? "ready" : "dev fallback"}</strong>
-                <span>Provider: {otpProviders.sms.provider}</span>
-                {isProviderFallback(otpProviders.sms.provider) && <span>Real SMS abhi send nahi hoga.</span>}
+              <span className="provider-console__badge">Diagnostics</span>
+            </div>
+            <div className="provider-console__grid">
+              <div className="provider-console__row">
+                <span className={otpProviders.email.configured ? "provider-console__dot provider-console__dot--ready" : "provider-console__dot"} />
+                <div>
+                  <strong>Email OTP</strong>
+                  <code>{otpProviders.email.provider}</code>
+                </div>
+                <em>{otpProviders.email.configured ? "Ready" : "Not configured"}</em>
+              </div>
+              <div className="provider-console__row">
+                <span className={otpProviders.sms.configured ? "provider-console__dot provider-console__dot--ready" : "provider-console__dot"} />
+                <div>
+                  <strong>SMS OTP</strong>
+                  <code>{otpProviders.sms.provider}</code>
+                </div>
+                <em>{otpProviders.sms.configured ? "Ready" : "Not configured"}</em>
               </div>
             </div>
+            {(isProviderFallback(otpProviders.email.provider) || isProviderFallback(otpProviders.sms.provider)) && (
+              <p className="provider-console__note">
+                Add real email/SMS keys in production env to send OTP to users.
+              </p>
+            )}
           </article>
         </section>
       )}
