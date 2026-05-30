@@ -61,6 +61,16 @@ function Signup() {
     });
   };
 
+  const handleRoleChange = (role) => {
+    setForm((current) => ({
+      ...current,
+      role,
+      phoneOtpVerified: role === "presswala" ? current.phoneOtpVerified : false
+    }));
+    setOtpMeta({ retryAfterSeconds: 0, provider: "" });
+    setMessage("");
+  };
+
   const handleShopPhotoChange = (event) => {
     const file = event.target.files?.[0];
 
@@ -99,7 +109,8 @@ function Signup() {
         retryAfterSeconds: Number(res.data.retryAfterSeconds || 0),
         provider: res.data.delivery?.provider || ""
       });
-      setMessage(res.data.deliveryHint || res.data.message || "OTP sent.");
+      const debugText = res.data.debugOtp ? ` OTP: ${res.data.debugOtp}` : "";
+      setMessage(`${res.data.deliveryHint || res.data.message || "OTP sent."}${debugText}`);
     } catch (error) {
       setOtpMeta({
         retryAfterSeconds: Number(error?.response?.data?.retryAfterSeconds || 0),
@@ -279,51 +290,46 @@ function Signup() {
   };
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--simple">
       <OpeningIntro
         compact
         showActions={false}
-        title="Walk in, set the cloth, and open your account flow."
-        description="As soon as the pressing starts, your signup journey appears below with the same premium tone."
+        title="PressKardu account setup"
+        description="Choose your role and continue."
         onReveal={() => setShowShell(true)}
       />
-      <section className={`auth-shell${showShell ? " auth-shell--visible" : ""}`}>
+      <section className={`auth-shell auth-shell--simple${showShell ? " auth-shell--visible" : ""}`}>
         <aside className="auth-panel auth-panel--intro">
           <div className="auth-panel__veil" aria-hidden="true" />
-          <p className="auth-card__eyebrow">Create account</p>
-          <h1>Join a polished local pressing network built for speed.</h1>
+          <p className="auth-card__eyebrow">Welcome</p>
+          <h1>Book ironing or grow your press shop.</h1>
           <p className="auth-panel__copy">
-            Sign up as a customer to book nearby services or as a shopkeeper to
-            receive and manage new pickup requests.
+            Signup takes a few details. Shopkeepers verify phone and location.
           </p>
 
           <div className="auth-panel__chips">
-            <span>Customer booking flow</span>
-            <span>Shopkeeper dashboard</span>
-            <span>Animated local-first UI</span>
+            <span>Fast signup</span>
+            <span>Nearby shops</span>
+            <span>Order tracking</span>
           </div>
 
           <div className="auth-panel__metrics">
             <article>
-              <strong>Fast setup</strong>
-              <span>Start discovering or accepting orders right away</span>
+              <strong>Customers</strong>
+              <span>Book and track orders.</span>
             </article>
             <article>
-              <strong>Location aware</strong>
-              <span>Bring your shop online with map-ready coordinates</span>
+              <strong>Shopkeepers</strong>
+              <span>Receive pickup requests.</span>
             </article>
           </div>
 
           <div className="auth-panel__spotlight">
-            <strong>Designed to move</strong>
-            <span>Animated onboarding with cleaner discovery, booking, and shop activation.</span>
+            <strong>No confusion.</strong>
+            <span>Pick a role and continue.</span>
           </div>
 
           <div className="auth-panel__scene-card">
-            <div className="auth-panel__scene-copy">
-              <strong>Premium service identity</strong>
-              <span>Warm, modern, animated and built for local trust</span>
-            </div>
             <LazyPressScene />
           </div>
         </aside>
@@ -331,41 +337,30 @@ function Signup() {
         <section className="auth-card auth-card--wide">
           <div className="auth-card__halo" aria-hidden="true" />
           <p className="auth-card__eyebrow">Create account</p>
-          <h2>Join PressKardu</h2>
+          <h2>Create your account</h2>
           <p className="auth-card__copy">
-            Choose your account type and complete the setup in one flow.
+            Start as a customer or register your press shop.
           </p>
           <Toast message={message} tone="warning" inline />
           {form.role === "presswala" && (
             <p className="auth-card__message">
-              New shop listings stay hidden until an admin reviews the address, phone, and map pin.
+              Shop listing goes live after admin review.
             </p>
           )}
-
-          <div className="auth-card__mini-stats" aria-hidden="true">
-            <article>
-              <strong>Map-ready</strong>
-              <span>shop onboarding for local discovery</span>
-            </article>
-            <article>
-              <strong>Instant</strong>
-              <span>customer and shopkeeper routing</span>
-            </article>
-          </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="auth-role-toggle" role="radiogroup" aria-label="Account type">
               <button
                 className={form.role === "user" ? "auth-role-toggle__item auth-role-toggle__item--active" : "auth-role-toggle__item"}
                 type="button"
-                onClick={() => setForm((current) => ({ ...current, role: "user" }))}
+                onClick={() => handleRoleChange("user")}
               >
                 Customer
               </button>
               <button
                 className={form.role === "presswala" ? "auth-role-toggle__item auth-role-toggle__item--active" : "auth-role-toggle__item"}
                 type="button"
-                onClick={() => setForm((current) => ({ ...current, role: "presswala" }))}
+                onClick={() => handleRoleChange("presswala")}
               >
                 Shopkeeper
               </button>
@@ -401,7 +396,7 @@ function Signup() {
               <div className="auth-section">
                 <div className="auth-section__head">
                   <strong>Shop details</strong>
-                  <span>Add the service area customers will discover.</span>
+                  <span>Add your public shop info.</span>
                 </div>
 
                 <label className="auth-field">
@@ -417,7 +412,7 @@ function Signup() {
                   <div className="auth-location-card">
                     <div className="auth-location-card__head">
                       <strong>{form.phoneOtpVerified ? "Phone verified" : "Verify phone"}</strong>
-                      <span>{form.phoneOtpVerified ? "OTP verified for this shop phone number." : "Send OTP to confirm the shopkeeper phone number."}</span>
+                      <span>{form.phoneOtpVerified ? "OTP verified." : "Confirm your shop phone."}</span>
                     </div>
                     {!form.phoneOtpVerified && otpMeta.retryAfterSeconds > 0 && (
                       <p className="auth-card__message">
@@ -446,7 +441,7 @@ function Signup() {
                 </label>
 
                 <p className="auth-card__message">
-                  Use the exact shop address and select the real location on the map. Wrong or fake locations are kept pending or rejected.
+                  Use your real shop address and map pin.
                 </p>
 
                 <input type="hidden" name="latitude" value={form.latitude} />
@@ -460,7 +455,7 @@ function Signup() {
                         ? "Address se map location match ki ja rahi hai..."
                         : form.latitude && form.longitude
                         ? `Lat ${Number(form.latitude).toFixed(5)}, Lng ${Number(form.longitude).toFixed(5)}`
-                        : "Current location lo ya map par pin choose karo"}
+                        : "Use current location or pick on map"}
                     </span>
                   </div>
 
@@ -480,7 +475,7 @@ function Signup() {
 
                 {showLocationPicker && (
                   <div className="auth-location-picker">
-                    <p className="auth-location-picker__hint">Map par exact shop spot par click karo.</p>
+                    <p className="auth-location-picker__hint">Tap the exact shop spot.</p>
                     <div className="auth-location-picker__map">
                       <LocationPickerMap
                         value={form.latitude && form.longitude
@@ -510,7 +505,7 @@ function Signup() {
                 </label>
                 {form.shopPhotoDataUrl && (
                   <div className="auth-location-picker">
-                    <p className="auth-location-picker__hint">Shop photo preview for admin review.</p>
+                    <p className="auth-location-picker__hint">Shop photo preview.</p>
                     <img src={form.shopPhotoDataUrl} alt="Shop preview" style={{ width: "100%", maxHeight: "240px", objectFit: "cover", borderRadius: "20px" }} />
                   </div>
                 )}

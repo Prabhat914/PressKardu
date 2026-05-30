@@ -7,7 +7,8 @@ import LoadingCards from "../components/LoadingCards";
 import Toast from "../components/Toast";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
-import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection } from "../utils/pressShops";
+import { addShopToCart } from "../utils/cart";
+import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableShop } from "../utils/pressShops";
 
 function PressShops() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ function PressShops() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [cartMessage, setCartMessage] = useState("");
   const [locationReady, setLocationReady] = useState(false);
   const [filters, setFilters] = useState({
     q: "",
@@ -267,7 +269,7 @@ function PressShops() {
         </form>
 
         {loading && <LoadingCards count={4} compact />}
-        <Toast message={!loading ? status : ""} tone="info" />
+        <Toast message={cartMessage || (!loading ? status : "")} tone={cartMessage ? "success" : "info"} />
         {!loading && status && <p className="press-shops-page__state">{status}</p>}
         {!loading && shops.length === 0 && (
           <p className="press-shops-page__state">No press shops found near your location yet.</p>
@@ -281,6 +283,12 @@ function PressShops() {
               index={index}
               actionLabel="View details"
               onAction={() => navigate(`/shops/${shop._id}`)}
+              secondaryActionLabel={isBookableShop(shop) ? "Add to cart" : "Preview only"}
+              secondaryActionDisabled={!isBookableShop(shop)}
+              onSecondaryAction={() => {
+                addShopToCart(shop);
+                setCartMessage(`${shop.shopName || "Shop"} added to checkout.`);
+              }}
             />
           ))}
         </div>

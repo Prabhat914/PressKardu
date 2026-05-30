@@ -3,8 +3,7 @@ const mongoose = require("mongoose");
 const phoneVerificationSessionSchema = new mongoose.Schema({
   phone: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   otpHash: {
     type: String,
@@ -29,5 +28,9 @@ const phoneVerificationSessionSchema = new mongoose.Schema({
     default: "shop-signup"
   }
 }, { timestamps: true });
+
+phoneVerificationSessionSchema.index({ phone: 1 }, { unique: true });
+phoneVerificationSessionSchema.index({ verifiedAt: 1 });
+phoneVerificationSessionSchema.index({ lastSentAt: 1 });
 
 module.exports = mongoose.model("PhoneVerificationSession", phoneVerificationSessionSchema);

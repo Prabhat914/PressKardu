@@ -8,6 +8,7 @@ import Toast from "../components/Toast";
 import LoadingCards from "../components/LoadingCards";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
+import { addShopToCart } from "../utils/cart";
 import { buildFallbackShops, DEFAULT_LOCATION, enrichShopCollection, isBookableShop } from "../utils/pressShops";
 import { enableGuestDemo, getStoredUser, isGuestDemo } from "../utils/session";
 import { startHostedPayment } from "../utils/payment";
@@ -878,6 +879,20 @@ function Home() {
             <div className="order-request__actions">
               <button type="submit" disabled={submittingOrder}>
                 {submittingOrder ? (orderForm.paymentMode === "online" ? "Opening checkout..." : "Sending...") : "Confirm request"}
+              </button>
+              <button
+                type="button"
+                className="order-request__cancel"
+                onClick={() => {
+                  addShopToCart(selectedShop, {
+                    clothesCount: Number(orderForm.clothesCount || 5),
+                    clothType: orderForm.clothType,
+                    serviceType: orderForm.serviceType
+                  });
+                  navigate("/checkout");
+                }}
+              >
+                Save to cart
               </button>
               <button type="button" className="order-request__cancel" onClick={() => setSelectedShop(null)}>
                 Cancel

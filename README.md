@@ -95,4 +95,5 @@ This checks:
 - `/api/health` now reports OTP provider readiness so you can confirm whether email/SMS is using a real provider or console fallback.
 - Online payment flow now supports Razorpay order creation plus backend-side signature verification.
 - For deployment steps and production env guidance, see [DEPLOYMENT.md](C:\Users\moto g\OneDrive\Desktop\PressKardu\DEPLOYMENT.md).
+- For 10k-customer readiness, indexes, monitoring, OTP, payment, and load-test requirements, see [PRODUCTION_READINESS.md](C:\Users\moto g\OneDrive\Desktop\PressKardu\PRODUCTION_READINESS.md).
 - Final manual release checks are listed in [QA_CHECKLIST.md](C:\Users\moto g\OneDrive\Desktop\PressKardu\QA_CHECKLIST.md).

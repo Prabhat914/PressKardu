@@ -13,6 +13,7 @@ const PressShops = lazy(() => import("./pages/PressShops"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ShopDetails = lazy(() => import("./pages/ShopDetails"));
+const Checkout = lazy(() => import("./pages/Checkout"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -47,6 +48,7 @@ function App() {
           <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
           <Route path="/shops" element={<PressShops />} />
           <Route path="/shops/:id" element={<ShopDetails />} />
+          <Route path="/checkout" element={<ProtectedRoute roles={["user"]}><Checkout /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPanel /></ProtectedRoute>} />

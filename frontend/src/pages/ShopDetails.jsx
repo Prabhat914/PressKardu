@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Map from "../components/Map";
 import API from "../services/api";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -7,12 +7,15 @@ import {
   DEFAULT_LOCATION,
   buildFallbackShops,
   enrichShopCollection,
+  isBookableShop,
   normalizeShop
 } from "../utils/pressShops";
+import { addShopToCart } from "../utils/cart";
 import { getFavoriteShopIds, toggleFavoriteShopId } from "../utils/session";
 
 function ShopDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [shop, setShop] = useState(null);
   const [message, setMessage] = useState("");
   const [favoriteIds, setFavoriteIds] = useState(getFavoriteShopIds());
@@ -91,6 +94,17 @@ function ShopDetails() {
           </div>
           <div className="home-shops__actions">
             <Link className="home-shops__link" to="/">Book from home</Link>
+            <button
+              className="press-card__action"
+              type="button"
+              disabled={!isBookableShop(shop)}
+              onClick={() => {
+                addShopToCart(shop);
+                navigate("/checkout");
+              }}
+            >
+              {isBookableShop(shop) ? "Add to cart" : "Preview only"}
+            </button>
             <button
               className="press-card__action press-card__action--secondary"
               type="button"

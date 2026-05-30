@@ -12,6 +12,7 @@ const errorMiddleware = require("./middleware/errorMiddleware");
 const { createRateLimiter } = require("./middleware/rateLimit");
 const { getOtpDeliveryStatus } = require("./utils/otpDelivery");
 const { isProduction, isTrustedOrigin } = require("./config/runtime");
+const { getPaymentProvider, supportsHostedSubscriptionPayments } = require("./services/paymentService");
 
 const app = express();
 const authRateLimiter = createRateLimiter({
@@ -61,11 +62,65 @@ app.use("/api/auth/phone-verification", authRateLimiter);
 app.use("/api/auth/forgot-password", passwordResetRateLimiter);
 app.use("/api/auth/verify-reset-otp", passwordResetRateLimiter);
 app.use("/api/auth/reset-password", passwordResetRateLimiter);
+
+function buildHealthPayload() {
+    const databaseConnected = mongoose.connection.readyState === 1;
+    const otpProviders = getOtpDeliveryStatus();
+    const paymentProvider = getPaymentProvider();
+    const hostedPaymentsReady = supportsHostedSubscriptionPayments();
+
+    return {
+        status: databaseConnected ? "ok" : "degraded",
+        service: "presskardu-backend",
+        environment: process.env.NODE_ENV || "development",
+        uptimeSeconds: Math.round(process.uptime()),
+        timestamp: new Date().toISOString(),
+        database: {
+            state: mongoose.connection.readyState,
+            connected: databaseConnected,
+            name: mongoose.connection.name || ""
+        },
+        otpProviders,
+        payments: {
+            provider: paymentProvider,
+            hostedCheckoutReady: hostedPaymentsReady,
+            verificationConfigured: Boolean(process.env.PAYMENT_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET)
+        },
+        config: {
+            corsConfigured: Boolean(String(process.env.CORS_ORIGIN || "").trim()),
+            jwtConfigured: Boolean(String(process.env.JWT_SECRET || "").trim()),
+            adminConfigured: Boolean(String(process.env.ADMIN_EMAIL || "").trim() && String(process.env.ADMIN_PASSWORD || "").trim()),
+            production: isProduction
+        },
+        memory: {
+            rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+            heapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+        }
+    };
+}
+
 app.get("/api/health", (req, res) => {
-    res.json({
-        status: mongoose.connection.readyState === 1 ? "ok" : "degraded",
-        database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-        otpProviders: getOtpDeliveryStatus()
+    const payload = buildHealthPayload();
+    res.status(payload.database.connected ? 200 : 503).json(payload);
+});
+
+app.get("/api/ready", (req, res) => {
+    const payload = buildHealthPayload();
+    const emailReady = payload.otpProviders.email.configured;
+    const smsReady = payload.otpProviders.sms.configured;
+    const productionReady = payload.database.connected &&
+        (!isProduction || (payload.config.corsConfigured && payload.config.jwtConfigured && emailReady && smsReady));
+
+    res.status(productionReady ? 200 : 503).json({
+        ready: productionReady,
+        blockers: [
+            !payload.database.connected ? "database disconnected" : "",
+            isProduction && !payload.config.corsConfigured ? "CORS_ORIGIN missing" : "",
+            isProduction && !payload.config.jwtConfigured ? "JWT_SECRET missing" : "",
+            isProduction && !emailReady ? "email OTP provider missing" : "",
+            isProduction && !smsReady ? "SMS OTP provider missing" : ""
+        ].filter(Boolean),
+        ...payload
     });
 });
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import API from "../services/api";
+import { getCartItems } from "../utils/cart";
 import { clearSession, disableGuestDemo, enableGuestDemo, getStoredUser, isGuestDemo } from "../utils/session";
 
 function Navbar({ theme = "light", onToggleTheme }) {
@@ -12,6 +13,7 @@ function Navbar({ theme = "light", onToggleTheme }) {
   const isAdmin = currentUser?.role === "admin";
   const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
   const [unreadCount, setUnreadCount] = useState(0);
+  const [cartCount, setCartCount] = useState(() => getCartItems().length);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchPanelRef = useRef(null);
@@ -86,6 +88,19 @@ function Navbar({ theme = "light", onToggleTheme }) {
     };
   }, [currentUser]);
 
+  useEffect(() => {
+    const syncCartCount = () => setCartCount(getCartItems().length);
+
+    syncCartCount();
+    window.addEventListener("presskardu-cart-change", syncCartCount);
+    window.addEventListener("storage", syncCartCount);
+
+    return () => {
+      window.removeEventListener("presskardu-cart-change", syncCartCount);
+      window.removeEventListener("storage", syncCartCount);
+    };
+  }, [location.pathname]);
+
   const handleLogout = () => {
     clearSession();
     disableGuestDemo();
@@ -132,6 +147,14 @@ function Navbar({ theme = "light", onToggleTheme }) {
               <span className="site-nav__badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
             )}
           </NavLink>
+          {!isShopkeeper && !isAdmin && (
+            <NavLink className="site-nav__link" to="/checkout">
+              Cart
+              {cartCount > 0 && (
+                <span className="site-nav__badge">{cartCount > 9 ? "9+" : cartCount}</span>
+              )}
+            </NavLink>
+          )}
           {currentUser && (
             <NavLink className="site-nav__link" to="/dashboard">
               Dashboard

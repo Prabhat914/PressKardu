@@ -143,34 +143,75 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
   const emailSubject = `PressKardu ${purpose} OTP`;
   const htmlMessage = `<p>Your PressKardu ${purpose} OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`;
   const textMessage = `Your PressKardu ${purpose} OTP is ${otp}. It expires in 10 minutes.`;
+  const providerErrors = [];
 
-  try {
-    if (channel === "email") {
-      if (process.env.RESEND_API_KEY) {
+  async function tryProvider(providerName, sender) {
+    try {
+      return await sender();
+    } catch (error) {
+      const message = error?.message || "Unknown provider error";
+      providerErrors.push(`${providerName}: ${message}`);
+      console.error(`OTP delivery provider failed (${providerName}):`, message);
+      return null;
+    }
+  }
+
+  if (channel === "email") {
+    if (process.env.RESEND_API_KEY) {
+      const delivery = await tryProvider("resend", async () => {
         return await sendViaResend({ email, otp, subject: emailSubject, html: htmlMessage });
-      }
+      });
 
-      if (process.env.BREVO_API_KEY) {
+      if (delivery) {
+        return delivery;
+      }
+    }
+
+    if (process.env.BREVO_API_KEY) {
+      const delivery = await tryProvider("brevo", async () => {
         return await sendViaBrevo({ email, otp, subject: emailSubject, html: htmlMessage });
+      });
+
+      if (delivery) {
+        return delivery;
       }
     }
+  }
 
-    if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
+  if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
+    const delivery = await tryProvider("twilio", async () => {
       return await sendViaTwilio({ phone, otp, message: textMessage });
-    }
+    });
 
-    const webhookDelivery = await sendViaWebhook({ channel, email, phone, otp, subject: emailSubject, message: textMessage });
-    if (webhookDelivery) {
-      return webhookDelivery;
+    if (delivery) {
+      return delivery;
     }
-  } catch (error) {
-    console.error("OTP delivery provider failed:", error.message);
+  }
+
+  const webhookDelivery = await tryProvider(`${channel}-webhook`, async () => {
+    return await sendViaWebhook({ channel, email, phone, otp, subject: emailSubject, message: textMessage });
+  });
+
+  if (webhookDelivery) {
+    return webhookDelivery;
   }
 
   if (!allowConsoleOtpFallback()) {
-    const error = new Error(`No ${channel.toUpperCase()} OTP provider is configured.`);
+    const errorMessage = providerErrors.length
+      ? `${channel.toUpperCase()} OTP delivery failed. ${providerErrors.join(" | ")}`
+      : `No ${channel.toUpperCase()} OTP provider is configured.`;
+    const error = new Error(errorMessage);
     error.statusCode = 503;
     throw error;
+  }
+
+  if (providerErrors.length) {
+    console.warn(`Using console OTP fallback after ${channel} provider failure.`);
+  } else {
+    const missingProviderMessage = `No ${channel.toUpperCase()} OTP provider is configured.`;
+    if (channel === "email" || channel === "sms") {
+      console.warn(missingProviderMessage);
+    }
   }
 
   console.log(`[OTP:${channel}] ${target} -> ${otp}`);

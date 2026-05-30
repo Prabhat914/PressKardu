@@ -18,6 +18,7 @@ function PressCard({
   actionDisabled,
   secondaryActionLabel,
   onSecondaryAction,
+  secondaryActionDisabled,
   tertiaryActionLabel,
   onTertiaryAction,
   children,
@@ -135,7 +136,7 @@ function PressCard({
             </button>
           )}
           {secondaryActionLabel && (
-            <button className="press-card__action press-card__action--secondary" type="button" onClick={() => onSecondaryAction?.(shop)}>
+            <button className="press-card__action press-card__action--secondary" type="button" onClick={() => onSecondaryAction?.(shop)} disabled={secondaryActionDisabled}>
               {secondaryActionLabel}
             </button>
           )}

@@ -25,7 +25,8 @@ function ForgotPassword() {
       setMessage(`${res.data.message}${debugText}`);
       navigate("/reset-password", {
         state: {
-          email: form.email
+          email: form.email,
+          recoveryMessage: `${res.data.deliveryHint || res.data.message || "OTP sent."}${debugText}`
         }
       });
     } catch (error) {

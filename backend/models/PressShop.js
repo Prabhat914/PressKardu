@@ -294,5 +294,12 @@ const pressShopSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 pressShopSchema.index({ location: "2dsphere" });
+pressShopSchema.index({ phone: 1 }, { sparse: true });
+pressShopSchema.index({ verificationStatus: 1, rating: -1, createdAt: -1 });
+pressShopSchema.index({ verificationStatus: 1, pricePerCloth: 1, rating: -1 });
+pressShopSchema.index({ verificationStatus: 1, turnaroundHours: 1, rating: -1 });
+pressShopSchema.index({ verificationStatus: 1, reportCount: -1, createdAt: -1 });
+pressShopSchema.index({ subscriptionStatus: 1, subscriptionPlan: 1 });
+pressShopSchema.index({ shopName: "text", address: "text", specialty: "text", services: "text" });
 
 module.exports = mongoose.model("PressShop", pressShopSchema);

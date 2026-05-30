@@ -14,7 +14,7 @@ function ResetPassword() {
     password: "",
     confirmPassword: ""
   });
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(location.state?.recoveryMessage || "");
   const [resetToken, setResetToken] = useState("");
   const [loading, setLoading] = useState(false);
 

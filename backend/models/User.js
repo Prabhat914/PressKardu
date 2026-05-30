@@ -43,6 +43,11 @@ const userSchema = new mongoose.Schema({
     }
 }, {timestamps : true});
 
+userSchema.index({ phone: 1 }, { sparse: true });
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ "passwordReset.otpExpiresAt": 1 });
+userSchema.index({ "passwordReset.resetTokenExpiresAt": 1 });
+
 userSchema.pre("validate", function normalizeAndValidateAdminRole() {
     if (this.email) {
         this.email = String(this.email).trim().toLowerCase();
