@@ -58,6 +58,7 @@ app.use(express.json({ limit: "8mb" }));
 app.use(morgan("dev"));
 app.use("/api/auth/login", authRateLimiter);
 app.use("/api/auth/signup", authRateLimiter);
+app.use("/api/auth/email-verification", authRateLimiter);
 app.use("/api/auth/phone-verification", authRateLimiter);
 app.use("/api/auth/forgot-password", passwordResetRateLimiter);
 app.use("/api/auth/verify-reset-otp", passwordResetRateLimiter);

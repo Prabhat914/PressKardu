@@ -1,10 +1,12 @@
 const User = require("../models/User");
 const PressShop = require("../models/PressShop");
+const EmailVerificationSession = require("../models/EmailVerificationSession");
 const PhoneVerificationSession = require("../models/PhoneVerificationSession");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
 const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
+const { EMAIL_OTP_EXPIRY_MINUTES, getVerifiedEmailSession, normalizeEmail } = require("../utils/emailVerification");
 const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
 const { allowDebugOtpExposure, isProduction, getJwtSecret, getAdminEmail } = require("../config/runtime");
 
@@ -13,11 +15,13 @@ const RESET_TOKEN_EXPIRY_MINUTES = Number(process.env.RESET_TOKEN_EXPIRY_MINUTES
 const MAX_OTP_ATTEMPTS = Number(process.env.MAX_OTP_ATTEMPTS || 5);
 const SHOULD_EXPOSE_DEBUG_OTP = allowDebugOtpExposure();
 const PHONE_OTP_COOLDOWN_SECONDS = Number(process.env.PHONE_OTP_COOLDOWN_SECONDS || 45);
+const EMAIL_OTP_COOLDOWN_SECONDS = Number(process.env.EMAIL_OTP_COOLDOWN_SECONDS || PHONE_OTP_COOLDOWN_SECONDS);
 
 function ensureOtpDeliveryAvailable(delivery, channel) {
     if (delivery?.provider === "console-fallback" && isProduction) {
         const error = new Error(`${channel.toUpperCase()} OTP delivery is not configured for production use.`);
         error.statusCode = 503;
+        error.expose = true;
         throw error;
     }
 }
@@ -50,11 +54,111 @@ function isValidShopPhotoDataUrl(value) {
     return /^data:image\/(png|jpeg|jpg|webp);base64,/i.test(String(value || ""));
 }
 
+exports.sendEmailVerificationOtp = async (req, res) => {
+    const normalizedEmail = normalizeEmail(req.body.email);
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const existingSession = await EmailVerificationSession.findOne({ email: normalizedEmail });
+    if (existingSession?.lastSentAt) {
+        const secondsSinceLastSend = Math.floor((Date.now() - new Date(existingSession.lastSentAt).getTime()) / 1000);
+        if (secondsSinceLastSend < EMAIL_OTP_COOLDOWN_SECONDS) {
+            return res.status(429).json({
+                message: `Please wait ${EMAIL_OTP_COOLDOWN_SECONDS - secondsSinceLastSend} seconds before requesting another OTP.`,
+                retryAfterSeconds: EMAIL_OTP_COOLDOWN_SECONDS - secondsSinceLastSend
+            });
+        }
+    }
+
+    const otp = generateOtp();
+    const otpExpiresAt = new Date(Date.now() + EMAIL_OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await EmailVerificationSession.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+            email: normalizedEmail,
+            otpHash: hashValue(otp),
+            otpExpiresAt,
+            verifiedAt: undefined,
+            consumedAt: undefined,
+            attempts: 0,
+            lastSentAt: new Date(),
+            purpose: "signup"
+        },
+        {
+            upsert: true,
+            returnDocument: "after",
+            setDefaultsOnInsert: true
+        }
+    );
+
+    const delivery = await deliverOtp({
+        channel: "email",
+        email: normalizedEmail,
+        otp,
+        purpose: "email verification"
+    });
+    ensureOtpDeliveryAvailable(delivery, "email");
+
+    res.json({
+        message: "Email verification OTP sent.",
+        delivery,
+        deliveryHint: `OTP sent via ${delivery.provider}.`,
+        ...(SHOULD_EXPOSE_DEBUG_OTP ? { debugOtp: otp } : {})
+    });
+};
+
+exports.verifyEmailVerificationOtp = async (req, res) => {
+    const normalizedEmail = normalizeEmail(req.body.email);
+    const otp = String(req.body.otp || "").trim();
+    const session = await EmailVerificationSession.findOne({ email: normalizedEmail });
+
+    if (!session || !session.otpHash || !session.otpExpiresAt) {
+        return res.status(400).json({ message: "OTP session not found. Request a new OTP." });
+    }
+
+    if (session.attempts >= MAX_OTP_ATTEMPTS) {
+        return res.status(429).json({ message: "Too many invalid OTP attempts. Request a new OTP." });
+    }
+
+    if (session.consumedAt) {
+        return res.status(400).json({ message: "OTP session already used. Request a new OTP." });
+    }
+
+    if (new Date(session.otpExpiresAt) < new Date()) {
+        return res.status(400).json({ message: "OTP has expired. Request a new OTP." });
+    }
+
+    if (hashValue(otp) !== session.otpHash) {
+        session.attempts = (session.attempts || 0) + 1;
+        await session.save();
+        return res.status(400).json({ message: "Invalid OTP." });
+    }
+
+    session.verifiedAt = new Date();
+    session.attempts = 0;
+    await session.save();
+
+    res.json({
+        message: "Email verified successfully.",
+        email: normalizedEmail,
+        verifiedAt: session.verifiedAt
+    });
+};
+
 exports.sendPhoneVerificationOtp = async (req, res) => {
     const normalizedPhone = normalizePhone(req.body.phone);
 
     if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
         return res.status(400).json({ message: "Valid phone number is required" });
+    }
+
+    const duplicatePhoneUser = await User.findOne({ phone: normalizedPhone });
+    if (duplicatePhoneUser) {
+        return res.status(400).json({ message: "Phone number is already linked to another account" });
     }
 
     const existingSession = await PhoneVerificationSession.findOne({ phone: normalizedPhone });
@@ -81,7 +185,7 @@ exports.sendPhoneVerificationOtp = async (req, res) => {
             consumedAt: undefined,
             attempts: 0,
             lastSentAt: new Date(),
-            purpose: "shop-signup"
+            purpose: "signup"
         },
         {
             upsert: true,
@@ -170,7 +274,7 @@ exports.login = async (req, res) =>{
         return res.status(400).json({ message: "Email and password are required" });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
     const user = await User.findOne({ email: normalizedEmail });
 
     if(!user){
@@ -181,6 +285,12 @@ exports.login = async (req, res) =>{
 
     if(!isMatch){
         return res.status(400).json({ message: "Invalid password"});
+    }
+
+    if (user.role !== "admin" && (!user.emailVerifiedAt || !user.phoneVerifiedAt)) {
+        return res.status(403).json({
+            message: "Account verification is incomplete. Please verify email and phone before logging in."
+        });
     }
 
     const token = jwt.sign(
@@ -214,11 +324,12 @@ exports.signup = async (req, res)=>{
 
     const role = incomingRole === "presswala" ? "presswala" : "user";
 
-    if (!name || !email || !password) {
-        return res.status(400).json({ message: "Name, email, and password are required" });
+    if (!name || !email || !password || !phone) {
+        return res.status(400).json({ message: "Name, email, phone, and password are required" });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedPhone = normalizePhone(phone);
     const reservedAdminEmail = getAdminEmail();
 
     if (reservedAdminEmail && normalizedEmail === reservedAdminEmail) {
@@ -233,15 +344,23 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Email already registered" });
     }
 
+    if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
+        return res.status(400).json({ message: "Valid phone number is required" });
+    }
+
+    if (!req.body.emailOtpVerified) {
+        return res.status(400).json({ message: "Email OTP verification is required" });
+    }
+
+    if (!req.body.phoneOtpVerified) {
+        return res.status(400).json({ message: "Phone OTP verification is required" });
+    }
+
     if (role === "presswala") {
-        if (!shopName || !address || latitude === undefined || longitude === undefined || !phone) {
+        if (!shopName || !address || latitude === undefined || longitude === undefined) {
             return res.status(400).json({
                 message: "Shop name, phone, address, latitude and longitude are required for shopkeepers"
             });
-        }
-
-        if (!req.body.phoneOtpVerified) {
-            return res.status(400).json({ message: "Phone OTP verification is required for shopkeepers" });
         }
 
         if (!req.body.shopPhotoDataUrl || !isValidShopPhotoDataUrl(req.body.shopPhotoDataUrl)) {
@@ -249,7 +368,6 @@ exports.signup = async (req, res)=>{
         }
     }
 
-    const normalizedPhone = role === "presswala" ? normalizePhone(phone) : normalizePhone(phone);
     const duplicatePhoneUser = normalizedPhone
         ? await User.findOne({ phone: normalizedPhone })
         : null;
@@ -258,16 +376,20 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Phone number is already linked to another account" });
     }
 
+    const emailVerification = await getVerifiedEmailSession(normalizedEmail);
+    if (!emailVerification || emailVerification.consumedAt) {
+        return res.status(400).json({ message: "Email verification expired or is missing. Verify again." });
+    }
+
+    const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
+    if (!phoneVerification || phoneVerification.consumedAt) {
+        return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
+    }
+
     if (role === "presswala") {
         const duplicateShopPhone = await PressShop.findOne({ phone: normalizedPhone });
         if (duplicateShopPhone) {
             return res.status(400).json({ message: "Phone number is already linked to another shop" });
-        }
-
-        const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
-
-        if (!phoneVerification || phoneVerification.consumedAt) {
-            return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
         }
     }
 
@@ -279,19 +401,14 @@ exports.signup = async (req, res)=>{
         user = await User.create({
             name,
             email: normalizedEmail,
-            phone: normalizedPhone || undefined,
+            phone: normalizedPhone,
+            emailVerifiedAt: emailVerification.verifiedAt,
+            phoneVerifiedAt: phoneVerification.verifiedAt,
             role,
             password : hashedPassword
         });
 
         if (role === "presswala") {
-            const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
-
-            if (!phoneVerification || phoneVerification.consumedAt) {
-                await User.deleteOne({ _id: user._id });
-                return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
-            }
-
             const fraudSignals = assessFraudSignals({
                 address,
                 latitude,
@@ -332,9 +449,11 @@ exports.signup = async (req, res)=>{
                 about: req.body.about
             });
 
-            phoneVerification.consumedAt = new Date();
-            await phoneVerification.save();
         }
+
+        emailVerification.consumedAt = new Date();
+        phoneVerification.consumedAt = new Date();
+        await Promise.all([emailVerification.save(), phoneVerification.save()]);
     } catch (error) {
         if (user?._id && role === "presswala" && !pressShop) {
             await User.deleteOne({ _id: user._id });

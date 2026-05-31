@@ -24,9 +24,10 @@ const errorMiddleware = (err, req, res, next) => {
   }
 
   const statusCode = err.statusCode || 500;
+  const shouldExposeMessage = err.expose || statusCode < 500;
 
   return res.status(statusCode).json({
-    message: statusCode >= 500 ? "Internal server error" : err.message,
+    message: shouldExposeMessage ? err.message : "Internal server error",
     error: err.message
   });
 };

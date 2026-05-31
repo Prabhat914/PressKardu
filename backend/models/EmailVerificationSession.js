@@ -1,9 +1,11 @@
 const mongoose = require("mongoose");
 
-const phoneVerificationSessionSchema = new mongoose.Schema({
-  phone: {
+const emailVerificationSessionSchema = new mongoose.Schema({
+  email: {
     type: String,
-    required: true
+    required: true,
+    lowercase: true,
+    trim: true
   },
   otpHash: {
     type: String,
@@ -29,8 +31,8 @@ const phoneVerificationSessionSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-phoneVerificationSessionSchema.index({ phone: 1 }, { unique: true });
-phoneVerificationSessionSchema.index({ verifiedAt: 1 });
-phoneVerificationSessionSchema.index({ lastSentAt: 1 });
+emailVerificationSessionSchema.index({ email: 1 }, { unique: true });
+emailVerificationSessionSchema.index({ verifiedAt: 1 });
+emailVerificationSessionSchema.index({ lastSentAt: 1 });
 
-module.exports = mongoose.model("PhoneVerificationSession", phoneVerificationSessionSchema);
+module.exports = mongoose.model("EmailVerificationSession", emailVerificationSessionSchema);

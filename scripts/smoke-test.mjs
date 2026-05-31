@@ -2,6 +2,7 @@ const baseUrl = process.env.PRESSKARDU_API_BASE_URL || "http://127.0.0.1:5000/ap
 const uniqueId = Date.now();
 const email = `smoke-${uniqueId}@example.com`;
 const password = "Smoke123";
+const phone = `91000${String(uniqueId).slice(-5)}`;
 const shopEmail = `shop-smoke-${uniqueId}@example.com`;
 const shopPassword = "Smoke123";
 const shopPhone = `90000${String(uniqueId).slice(-5)}`;
@@ -27,18 +28,62 @@ async function request(path, options = {}) {
   return data;
 }
 
+async function verifySignupContact({ email, phone, label }) {
+  const emailOtpSend = await request("/auth/email-verification/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ email })
+  });
+  const phoneOtpSend = await request("/auth/phone-verification/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ phone })
+  });
+
+  console.log(`${label} email otp provider:`, emailOtpSend.delivery?.provider || "unknown");
+  console.log(`${label} phone otp provider:`, phoneOtpSend.delivery?.provider || "unknown");
+
+  if (!emailOtpSend.debugOtp || !phoneOtpSend.debugOtp) {
+    console.log(`${label} signup smoke skipped: debug OTP is not exposed`);
+    return false;
+  }
+
+  await request("/auth/email-verification/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      otp: emailOtpSend.debugOtp
+    })
+  });
+  await request("/auth/phone-verification/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      phone,
+      otp: phoneOtpSend.debugOtp
+    })
+  });
+  console.log(`${label} email and phone otp verified`);
+  return true;
+}
+
 async function main() {
   const health = await request("/health");
   console.log("health:", health);
   console.log("otp providers:", health.otpProviders);
+
+  const customerVerified = await verifySignupContact({ email, phone, label: "customer" });
+  if (!customerVerified) {
+    return;
+  }
 
   const signup = await request("/auth/signup", {
     method: "POST",
     body: JSON.stringify({
       name: "Smoke Test User",
       email,
+      phone,
       password,
-      role: "user"
+      role: "user",
+      emailOtpVerified: true,
+      phoneOtpVerified: true
     })
   });
   console.log("signup ok:", signup.user.email);
@@ -59,27 +104,10 @@ async function main() {
   });
   console.log("orders fetched:", Array.isArray(orders) ? orders.length : 0);
 
-  const phoneOtpSend = await request("/auth/phone-verification/send-otp", {
-    method: "POST",
-    body: JSON.stringify({
-      phone: shopPhone
-    })
-  });
-  console.log("phone otp provider:", phoneOtpSend.delivery?.provider || "unknown");
-
-  if (!phoneOtpSend.debugOtp) {
-    console.log("advanced verification smoke skipped: debug OTP is not exposed");
+  const shopVerified = await verifySignupContact({ email: shopEmail, phone: shopPhone, label: "shop" });
+  if (!shopVerified) {
     return;
   }
-
-  await request("/auth/phone-verification/verify-otp", {
-    method: "POST",
-    body: JSON.stringify({
-      phone: shopPhone,
-      otp: phoneOtpSend.debugOtp
-    })
-  });
-  console.log("shop phone otp verified");
 
   const shopSignup = await request("/auth/signup", {
     method: "POST",
@@ -89,6 +117,7 @@ async function main() {
       password: shopPassword,
       phone: shopPhone,
       role: "presswala",
+      emailOtpVerified: true,
       phoneOtpVerified: true,
       shopName: `Smoke Press ${uniqueId}`,
       address: "221B Test Street, Jaipur, Rajasthan",

@@ -202,6 +202,7 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
       : `No ${channel.toUpperCase()} OTP provider is configured.`;
     const error = new Error(errorMessage);
     error.statusCode = 503;
+    error.expose = true;
     throw error;
   }
 
