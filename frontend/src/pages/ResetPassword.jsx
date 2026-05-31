@@ -15,12 +15,16 @@ function ResetPassword() {
     confirmPassword: ""
   });
   const [message, setMessage] = useState(location.state?.recoveryMessage || "");
+  const [messageTone, setMessageTone] = useState("info");
   const [resetToken, setResetToken] = useState("");
   const [loading, setLoading] = useState(false);
+  const isOtpVerified = Boolean(resetToken);
 
-  const verifyOtp = async () => {
+  const verifyOtp = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setMessage("");
+    setMessageTone("warning");
 
     try {
       const res = await API.post("/auth/verify-reset-otp", {
@@ -28,8 +32,9 @@ function ResetPassword() {
         otp: form.otp
       });
       setResetToken(res.data.resetToken);
-      setMessage("OTP verified. Ab naya password set karo.");
+      setMessage("");
     } catch (error) {
+      setMessageTone("warning");
       setMessage(getApiErrorMessage(error, "OTP verify nahi ho paaya."));
     } finally {
       setLoading(false);
@@ -40,17 +45,20 @@ function ResetPassword() {
     event.preventDefault();
 
     if (form.password !== form.confirmPassword) {
+      setMessageTone("warning");
       setMessage("Password aur confirm password same hone chahiye.");
       return;
     }
 
     if (!resetToken) {
+      setMessageTone("warning");
       setMessage("Pehle OTP verify karo.");
       return;
     }
 
     setLoading(true);
     setMessage("");
+    setMessageTone("warning");
 
     try {
       const res = await API.post("/auth/reset-password", {
@@ -58,9 +66,11 @@ function ResetPassword() {
         resetToken,
         password: form.password
       });
+      setMessageTone("success");
       setMessage(res.data.message);
       window.setTimeout(() => navigate("/login"), 1200);
     } catch (error) {
+      setMessageTone("warning");
       setMessage(getApiErrorMessage(error, "Password reset nahi ho paaya."));
     } finally {
       setLoading(false);
@@ -72,66 +82,75 @@ function ResetPassword() {
       <section className="auth-shell auth-shell--visible">
         <section className="auth-card auth-card--wide">
           <p className="auth-card__eyebrow">Reset access</p>
-          <h2>Verify OTP and reset password</h2>
+          <h2>{isOtpVerified ? "Set new password" : "Verify OTP"}</h2>
           <p className="auth-card__copy">
-            OTP verify karne ke baad hi backend new password accept karega.
+            {isOtpVerified
+              ? "Ab apna naya password set karo."
+              : "Pehle OTP verify karo. Uske baad password fields unlock hongi."}
           </p>
 
-          <form className="auth-form" onSubmit={handleReset}>
-            <AuthVisibilityField
-              label="Email"
-              hiddenType="email"
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              required
-              autoComplete="email"
-              allowToggle={false}
-            />
-
-            <div className="auth-form__split">
-              <label className="auth-field">
-                <span className="auth-field__label">OTP</span>
-                <input
-                  className="auth-field__input"
-                  value={form.otp}
-                  onChange={(event) => setForm((current) => ({ ...current, otp: event.target.value }))}
+          {!isOtpVerified ? (
+            <>
+              <form className="auth-form" onSubmit={verifyOtp}>
+                <AuthVisibilityField
+                  label="Email"
+                  hiddenType="email"
+                  value={form.email}
+                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                   required
+                  autoComplete="email"
+                  allowToggle={false}
                 />
-              </label>
-              <button type="button" className="auth-form__secondary" onClick={verifyOtp} disabled={loading}>
-                {loading ? "Checking..." : "Verify OTP"}
+
+                <div className="auth-form__split">
+                  <label className="auth-field">
+                    <span className="auth-field__label">OTP</span>
+                    <input
+                      className="auth-field__input"
+                      value={form.otp}
+                      onChange={(event) => setForm((current) => ({ ...current, otp: event.target.value }))}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="auth-form__secondary" disabled={loading}>
+                    {loading ? "Checking..." : "Verify OTP"}
+                  </button>
+                </div>
+              </form>
+
+              <p className="auth-card__switch">
+                Need another OTP? <Link to="/forgot-password">Request again</Link>
+              </p>
+            </>
+          ) : (
+            <form className="auth-form" onSubmit={handleReset}>
+              <AuthVisibilityField
+                label="New password"
+                hiddenType="password"
+                visibleType="text"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                required
+                autoComplete="new-password"
+              />
+
+              <AuthVisibilityField
+                label="Confirm password"
+                hiddenType="password"
+                visibleType="text"
+                value={form.confirmPassword}
+                onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                required
+                autoComplete="new-password"
+              />
+
+              <button type="submit" disabled={loading}>
+                {loading ? "Resetting..." : "Reset password"}
               </button>
-            </div>
+            </form>
+          )}
 
-            <AuthVisibilityField
-              label="New password"
-              hiddenType="password"
-              visibleType="text"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              required
-              autoComplete="new-password"
-            />
-
-            <AuthVisibilityField
-              label="Confirm password"
-              hiddenType="password"
-              visibleType="text"
-              value={form.confirmPassword}
-              onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-              required
-              autoComplete="new-password"
-            />
-
-            <button type="submit" disabled={loading}>
-              {loading ? "Resetting..." : "Reset password"}
-            </button>
-          </form>
-          <Toast message={message} tone={message.toLowerCase().includes("successful") || message.toLowerCase().includes("verified") ? "success" : "warning"} />
-
-          <p className="auth-card__switch">
-            Need another OTP? <Link to="/forgot-password">Request again</Link>
-          </p>
+          <Toast message={message} tone={messageTone} />
         </section>
       </section>
     </main>
