@@ -23,6 +23,21 @@ async function postJson(url, payload, options = {}) {
   return response.text();
 }
 
+async function readProviderError(response, fallbackMessage) {
+  const text = await response.text();
+
+  if (!text) {
+    return fallbackMessage;
+  }
+
+  try {
+    const payload = JSON.parse(text);
+    return payload.message || payload.error || fallbackMessage;
+  } catch {
+    return text;
+  }
+}
+
 function requireValue(value, message) {
   if (!value) {
     throw new Error(message);
@@ -100,8 +115,14 @@ async function sendViaTwilio({ phone, otp, message }) {
   );
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || "Twilio SMS delivery failed");
+    const providerMessage = await readProviderError(response, "Twilio SMS delivery failed");
+    const isInvalidSender = providerMessage.toLowerCase().includes("invalid") &&
+      (providerMessage.toLowerCase().includes("from") || providerMessage.toLowerCase().includes("caller id"));
+    const configHint = isInvalidSender
+      ? " Use a Twilio-owned sender number in E.164 format, for example +1234567890."
+      : "";
+
+    throw new Error(`${providerMessage}${configHint}`);
   }
 
   return { channel: "sms", target: phone, provider: "twilio" };

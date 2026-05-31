@@ -12,16 +12,19 @@ function ForgotPassword() {
     channel: "email"
   });
   const [message, setMessage] = useState("");
+  const [messageTone, setMessageTone] = useState("warning");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setMessage("");
+    setMessageTone("warning");
 
     try {
       const res = await API.post("/auth/forgot-password", form);
       const debugText = res.data.debugOtp ? ` Test OTP: ${res.data.debugOtp}` : "";
+      setMessageTone("success");
       setMessage(`${res.data.message}${debugText}`);
       navigate("/reset-password", {
         state: {
@@ -30,6 +33,7 @@ function ForgotPassword() {
         }
       });
     } catch (error) {
+      setMessageTone("warning");
       setMessage(getApiErrorMessage(error, "OTP send nahi ho paaya."));
     } finally {
       setLoading(false);
@@ -73,7 +77,7 @@ function ForgotPassword() {
               {loading ? "Sending OTP..." : "Send OTP"}
             </button>
           </form>
-          <Toast message={message} tone={message.includes("OTP") ? "success" : "warning"} />
+          <Toast message={message} tone={messageTone} />
 
           <p className="auth-card__switch">
             Back to <Link to="/login">Login</Link>
