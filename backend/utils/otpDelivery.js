@@ -64,6 +64,25 @@ function requireValue(value, message) {
   }
 }
 
+function formatSmsPhoneNumber(phone, { defaultCountryCode = "91" } = {}) {
+  const rawPhone = String(phone || "").trim();
+
+  if (rawPhone.startsWith("+")) {
+    return `+${rawPhone.replace(/\D/g, "")}`;
+  }
+
+  const digits = rawPhone.replace(/\D/g, "");
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.length === 10) {
+    return `+${defaultCountryCode}${digits}`;
+  }
+
+  return `+${digits}`;
+}
+
 async function sendViaResend({ email, otp, subject, html }) {
   requireValue(process.env.RESEND_API_KEY, "RESEND_API_KEY is not configured");
   requireValue(process.env.RESEND_FROM_EMAIL, "RESEND_FROM_EMAIL is not configured");
@@ -123,9 +142,12 @@ async function sendViaTwilio({ phone, otp, message }) {
   requireValue(process.env.TWILIO_AUTH_TOKEN, "TWILIO_AUTH_TOKEN is not configured");
   requireValue(process.env.TWILIO_PHONE_NUMBER, "TWILIO_PHONE_NUMBER is not configured");
 
+  const fromPhone = formatSmsPhoneNumber(process.env.TWILIO_PHONE_NUMBER);
+  const toPhone = formatSmsPhoneNumber(phone);
+
   const params = new URLSearchParams({
-    To: phone,
-    From: process.env.TWILIO_PHONE_NUMBER,
+    To: toPhone,
+    From: fromPhone,
     Body: message || `Your PressKardu OTP is ${otp}. It expires in 10 minutes.`
   });
 
@@ -301,5 +323,6 @@ function getOtpDeliveryStatus() {
 module.exports = {
   deliverOtp,
   deliverResetOtp,
-  getOtpDeliveryStatus
+  getOtpDeliveryStatus,
+  formatSmsPhoneNumber
 };

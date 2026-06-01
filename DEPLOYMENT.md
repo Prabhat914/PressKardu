@@ -72,6 +72,7 @@ Render setup steps:
    - `RESEND_*` / `BREVO_*` for optional email flows like forgot password, or
    - webhook URLs
    - Signup requires phone OTP only. Resend requires a verified domain before it can send email to normal users.
+   - `TWILIO_PHONE_NUMBER` must be a Twilio-owned sender number from your Twilio console, not your personal mobile number.
 7. Keep `ALLOW_DEBUG_OTP=false` in production.
 8. Set `PHONE_OTP_COOLDOWN_SECONDS` and `PHONE_VERIFICATION_MAX_AGE_MINUTES` to match your verification policy.
 9. Set `CORS_ORIGIN` to the frontend domain that should be allowed.
@@ -136,7 +137,7 @@ PHONE_OTP_COOLDOWN_SECONDS=45
 PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 TWILIO_ACCOUNT_SID=<twilio-account-sid>
 TWILIO_AUTH_TOKEN=<twilio-auth-token>
-TWILIO_PHONE_NUMBER=<twilio-sender-phone>
+TWILIO_PHONE_NUMBER=<twilio-owned-sender-phone>
 ```
 
 Frontend:
