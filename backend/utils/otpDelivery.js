@@ -165,9 +165,14 @@ async function sendViaTwilio({ phone, otp, message }) {
 
   if (!response.ok) {
     const providerMessage = await readProviderError(response, "Twilio SMS delivery failed");
+    const isSameToFromNumber = providerMessage.toLowerCase().includes("to") &&
+      providerMessage.toLowerCase().includes("from") &&
+      providerMessage.toLowerCase().includes("cannot be the same");
     const isInvalidSender = providerMessage.toLowerCase().includes("invalid") &&
       (providerMessage.toLowerCase().includes("from") || providerMessage.toLowerCase().includes("caller id"));
-    const configHint = isInvalidSender
+    const configHint = isSameToFromNumber
+      ? " Set TWILIO_PHONE_NUMBER to a Twilio-owned sender number, not the user's mobile number."
+      : isInvalidSender
       ? " Use a Twilio-owned sender number in E.164 format, for example +1234567890."
       : "";
 
