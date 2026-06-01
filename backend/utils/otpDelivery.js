@@ -23,6 +23,12 @@ async function postJson(url, payload, options = {}) {
   return response.text();
 }
 
+function createOtpDeliveryError(publicMessage, providerMessage) {
+  const error = new Error(providerMessage || publicMessage);
+  error.publicMessage = publicMessage;
+  return error;
+}
+
 async function readProviderError(response, fallbackMessage) {
   const text = await response.text();
 
@@ -38,6 +44,20 @@ async function readProviderError(response, fallbackMessage) {
   }
 }
 
+function buildResendPublicError(providerMessage) {
+  const normalizedMessage = String(providerMessage || "").toLowerCase();
+  const isTestingModeRestriction =
+    normalizedMessage.includes("testing emails") ||
+    normalizedMessage.includes("verify a domain") ||
+    normalizedMessage.includes("resend.com/domains");
+
+  if (isTestingModeRestriction) {
+    return "Email OTP delivery is not ready. Verify your Resend domain and set RESEND_FROM_EMAIL to an address from that domain.";
+  }
+
+  return "Email OTP delivery failed. Check your Resend API key and sender email configuration.";
+}
+
 function requireValue(value, message) {
   if (!value) {
     throw new Error(message);
@@ -48,20 +68,27 @@ async function sendViaResend({ email, otp, subject, html }) {
   requireValue(process.env.RESEND_API_KEY, "RESEND_API_KEY is not configured");
   requireValue(process.env.RESEND_FROM_EMAIL, "RESEND_FROM_EMAIL is not configured");
 
-  await postJson(
+  const response = await fetch(
     "https://api.resend.com/emails",
     {
-      from: process.env.RESEND_FROM_EMAIL,
-      to: [email],
-      subject: subject || "PressKardu verification OTP",
-      html: html || `<p>Your PressKardu OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
-    },
-    {
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`
-      }
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL,
+        to: [email],
+        subject: subject || "PressKardu verification OTP",
+        html: html || `<p>Your PressKardu OTP is <strong>${otp}</strong>.</p><p>It expires in 10 minutes.</p>`
+      })
     }
   );
+
+  if (!response.ok) {
+    const providerMessage = await readProviderError(response, "Resend email delivery failed");
+    throw createOtpDeliveryError(buildResendPublicError(providerMessage), providerMessage);
+  }
 
   return { channel: "email", target: email, provider: "resend" };
 }
@@ -171,7 +198,8 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
       return await sender();
     } catch (error) {
       const message = error?.message || "Unknown provider error";
-      providerErrors.push(`${providerName}: ${message}`);
+      const publicMessage = error?.publicMessage || message;
+      providerErrors.push(`${providerName}: ${publicMessage}`);
       console.error(`OTP delivery provider failed (${providerName}):`, message);
       return null;
     }
