@@ -107,10 +107,9 @@ app.get("/api/health", (req, res) => {
 
 app.get("/api/ready", (req, res) => {
     const payload = buildHealthPayload();
-    const emailReady = payload.otpProviders.email.configured;
     const smsReady = payload.otpProviders.sms.configured;
     const productionReady = payload.database.connected &&
-        (!isProduction || (payload.config.corsConfigured && payload.config.jwtConfigured && emailReady && smsReady));
+        (!isProduction || (payload.config.corsConfigured && payload.config.jwtConfigured && smsReady));
 
     res.status(productionReady ? 200 : 503).json({
         ready: productionReady,
@@ -118,7 +117,6 @@ app.get("/api/ready", (req, res) => {
             !payload.database.connected ? "database disconnected" : "",
             isProduction && !payload.config.corsConfigured ? "CORS_ORIGIN missing" : "",
             isProduction && !payload.config.jwtConfigured ? "JWT_SECRET missing" : "",
-            isProduction && !emailReady ? "email OTP provider missing" : "",
             isProduction && !smsReady ? "SMS OTP provider missing" : ""
         ].filter(Boolean),
         ...payload

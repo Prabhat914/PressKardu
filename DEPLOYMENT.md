@@ -68,11 +68,10 @@ Render setup steps:
    - `PAYMENT_CURRENCY`
    - `PAYMENT_WEBHOOK_SECRET` or `RAZORPAY_KEY_SECRET`
 6. Configure OTP provider if you do not want console fallback:
-   - `RESEND_*`, or
-   - `BREVO_*`, or
-   - `TWILIO_*`, or
+   - `TWILIO_*` for signup phone OTP, or
+   - `RESEND_*` / `BREVO_*` for optional email flows like forgot password, or
    - webhook URLs
-   - For Resend production signup OTP, verify your sending domain in Resend and set `RESEND_FROM_EMAIL` to an address on that verified domain, for example `PressKardu <no-reply@yourdomain.com>`. Resend test mode can only send to your own verified test email.
+   - Signup requires phone OTP only. Resend requires a verified domain before it can send email to normal users.
 7. Keep `ALLOW_DEBUG_OTP=false` in production.
 8. Set `PHONE_OTP_COOLDOWN_SECONDS` and `PHONE_VERIFICATION_MAX_AGE_MINUTES` to match your verification policy.
 9. Set `CORS_ORIGIN` to the frontend domain that should be allowed.
@@ -135,8 +134,9 @@ PAYMENT_CURRENCY=INR
 PAYMENT_WEBHOOK_SECRET=<gateway-secret>
 PHONE_OTP_COOLDOWN_SECONDS=45
 PHONE_VERIFICATION_MAX_AGE_MINUTES=10
-RESEND_API_KEY=<resend-api-key>
-RESEND_FROM_EMAIL=PressKardu <no-reply@your-verified-domain.com>
+TWILIO_ACCOUNT_SID=<twilio-account-sid>
+TWILIO_AUTH_TOKEN=<twilio-auth-token>
+TWILIO_PHONE_NUMBER=<twilio-sender-phone>
 ```
 
 Frontend:

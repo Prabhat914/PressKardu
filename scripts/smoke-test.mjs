@@ -28,31 +28,19 @@ async function request(path, options = {}) {
   return data;
 }
 
-async function verifySignupContact({ email, phone, label }) {
-  const emailOtpSend = await request("/auth/email-verification/send-otp", {
-    method: "POST",
-    body: JSON.stringify({ email })
-  });
+async function verifySignupContact({ phone, label }) {
   const phoneOtpSend = await request("/auth/phone-verification/send-otp", {
     method: "POST",
     body: JSON.stringify({ phone })
   });
 
-  console.log(`${label} email otp provider:`, emailOtpSend.delivery?.provider || "unknown");
   console.log(`${label} phone otp provider:`, phoneOtpSend.delivery?.provider || "unknown");
 
-  if (!emailOtpSend.debugOtp || !phoneOtpSend.debugOtp) {
+  if (!phoneOtpSend.debugOtp) {
     console.log(`${label} signup smoke skipped: debug OTP is not exposed`);
     return false;
   }
 
-  await request("/auth/email-verification/verify-otp", {
-    method: "POST",
-    body: JSON.stringify({
-      email,
-      otp: emailOtpSend.debugOtp
-    })
-  });
   await request("/auth/phone-verification/verify-otp", {
     method: "POST",
     body: JSON.stringify({
@@ -60,7 +48,7 @@ async function verifySignupContact({ email, phone, label }) {
       otp: phoneOtpSend.debugOtp
     })
   });
-  console.log(`${label} email and phone otp verified`);
+  console.log(`${label} phone otp verified`);
   return true;
 }
 
@@ -69,7 +57,7 @@ async function main() {
   console.log("health:", health);
   console.log("otp providers:", health.otpProviders);
 
-  const customerVerified = await verifySignupContact({ email, phone, label: "customer" });
+  const customerVerified = await verifySignupContact({ phone, label: "customer" });
   if (!customerVerified) {
     return;
   }
@@ -82,7 +70,6 @@ async function main() {
       phone,
       password,
       role: "user",
-      emailOtpVerified: true,
       phoneOtpVerified: true
     })
   });
@@ -104,7 +91,7 @@ async function main() {
   });
   console.log("orders fetched:", Array.isArray(orders) ? orders.length : 0);
 
-  const shopVerified = await verifySignupContact({ email: shopEmail, phone: shopPhone, label: "shop" });
+  const shopVerified = await verifySignupContact({ phone: shopPhone, label: "shop" });
   if (!shopVerified) {
     return;
   }
@@ -117,7 +104,6 @@ async function main() {
       password: shopPassword,
       phone: shopPhone,
       role: "presswala",
-      emailOtpVerified: true,
       phoneOtpVerified: true,
       shopName: `Smoke Press ${uniqueId}`,
       address: "221B Test Street, Jaipur, Rajasthan",

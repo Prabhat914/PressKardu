@@ -59,5 +59,5 @@
 - MongoDB production URI set
 - JWT secret set
 - Razorpay live keys set
-- At least one email OTP provider configured, or fallback accepted explicitly
-- At least one SMS OTP provider configured, or fallback accepted explicitly
+- SMS OTP provider configured for signup, or fallback accepted explicitly
+- Email OTP provider configured only if forgot-password email OTP is enabled

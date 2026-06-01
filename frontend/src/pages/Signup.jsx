@@ -26,16 +26,11 @@ function Signup() {
     pricePerCloth: "",
     serviceRadiusKm: "5",
     shopPhotoDataUrl: "",
-    emailOtp: "",
-    emailOtpVerified: false,
     phoneOtp: "",
     phoneOtpVerified: false
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailOtpSending, setEmailOtpSending] = useState(false);
-  const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
-  const [emailOtpMeta, setEmailOtpMeta] = useState({ retryAfterSeconds: 0, provider: "" });
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [otpMeta, setOtpMeta] = useState({ retryAfterSeconds: 0, provider: "" });
@@ -58,26 +53,10 @@ function Signup() {
     return () => window.clearInterval(intervalId);
   }, [otpMeta.retryAfterSeconds]);
 
-  useEffect(() => {
-    if (emailOtpMeta.retryAfterSeconds <= 0) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setEmailOtpMeta((current) => ({
-        ...current,
-        retryAfterSeconds: Math.max(0, current.retryAfterSeconds - 1)
-      }));
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [emailOtpMeta.retryAfterSeconds]);
-
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
-      ...(e.target.name === "email" ? { emailOtpVerified: false } : {}),
       ...(e.target.name === "phone" ? { phoneOtpVerified: false } : {})
     });
   };
@@ -113,66 +92,6 @@ function Signup() {
       }));
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleSendEmailOtp = async () => {
-    if (!form.email.trim()) {
-      setMessage("Pehle email enter karo.");
-      return;
-    }
-
-    try {
-      setEmailOtpSending(true);
-      const res = await API.post("/auth/email-verification/send-otp", {
-        email: form.email
-      });
-      setEmailOtpMeta({
-        retryAfterSeconds: Number(res.data.retryAfterSeconds || 0),
-        provider: res.data.delivery?.provider || ""
-      });
-      const debugText = res.data.debugOtp ? ` OTP: ${res.data.debugOtp}` : "";
-      setMessage(`${res.data.deliveryHint || res.data.message || "Email OTP sent."}${debugText}`);
-    } catch (error) {
-      setEmailOtpMeta({
-        retryAfterSeconds: Number(error?.response?.data?.retryAfterSeconds || 0),
-        provider: ""
-      });
-      setMessage(getApiErrorMessage(error, "Email OTP bhejna possible nahi hua."));
-    } finally {
-      setEmailOtpSending(false);
-    }
-  };
-
-  const handleVerifyEmailOtp = async () => {
-    if (!form.email.trim() || !form.emailOtp.trim()) {
-      setMessage("Email aur OTP dono enter karo.");
-      return;
-    }
-
-    try {
-      setEmailOtpVerifying(true);
-      const res = await API.post("/auth/email-verification/verify-otp", {
-        email: form.email,
-        otp: form.emailOtp
-      });
-      setForm((current) => ({
-        ...current,
-        emailOtpVerified: true
-      }));
-      setEmailOtpMeta((current) => ({
-        ...current,
-        retryAfterSeconds: 0
-      }));
-      setMessage(res.data.message || "Email verified.");
-    } catch (error) {
-      setForm((current) => ({
-        ...current,
-        emailOtpVerified: false
-      }));
-      setMessage(getApiErrorMessage(error, "Email OTP verify nahi hua."));
-    } finally {
-      setEmailOtpVerifying(false);
-    }
   };
 
   const handleSendPhoneOtp = async () => {
@@ -476,38 +395,7 @@ function Signup() {
             <div className="auth-section">
               <div className="auth-section__head">
                 <strong>Account verification</strong>
-                <span>Email aur phone OTP verify karna zaroori hai.</span>
-              </div>
-
-              <div className="auth-form__split">
-                <label className="auth-field">
-                  <span className="auth-field__label">Email OTP</span>
-                  <input className="auth-field__input" name="emailOtp" placeholder="Enter email OTP" onChange={handleChange} value={form.emailOtp} required />
-                </label>
-                <div className="auth-location-card">
-                  <div className="auth-location-card__head">
-                    <strong>{form.emailOtpVerified ? "Email verified" : "Verify email"}</strong>
-                    <span>{form.emailOtpVerified ? "OTP verified." : "Confirm your email."}</span>
-                  </div>
-                  {!form.emailOtpVerified && emailOtpMeta.retryAfterSeconds > 0 && (
-                    <p className="auth-card__message">
-                      Resend unlocks in {emailOtpMeta.retryAfterSeconds}s.
-                    </p>
-                  )}
-                  {!form.emailOtpVerified && emailOtpMeta.provider && (
-                    <p className="auth-card__message">
-                      Current delivery route: {emailOtpMeta.provider}.
-                    </p>
-                  )}
-                  <div className="auth-location-card__actions">
-                    <button className="auth-form__secondary" type="button" onClick={handleSendEmailOtp} disabled={emailOtpSending || emailOtpMeta.retryAfterSeconds > 0}>
-                      {emailOtpSending ? "Sending..." : "Send OTP"}
-                    </button>
-                    <button className="auth-form__secondary" type="button" onClick={handleVerifyEmailOtp} disabled={emailOtpVerifying}>
-                      {emailOtpVerifying ? "Verifying..." : "Verify OTP"}
-                    </button>
-                  </div>
-                </div>
+                <span>Phone OTP verify karna zaroori hai.</span>
               </div>
 
               <div className="auth-form__split">
@@ -642,7 +530,7 @@ function Signup() {
               autoComplete="new-password"
             />
 
-            <button type="submit" disabled={loading || !form.emailOtpVerified || !form.phoneOtpVerified}>
+            <button type="submit" disabled={loading || !form.phoneOtpVerified}>
               {loading ? "Creating account..." : "Signup"}
             </button>
           </form>

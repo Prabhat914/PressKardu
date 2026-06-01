@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
 const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
-const { EMAIL_OTP_EXPIRY_MINUTES, getVerifiedEmailSession, normalizeEmail } = require("../utils/emailVerification");
+const { EMAIL_OTP_EXPIRY_MINUTES, normalizeEmail } = require("../utils/emailVerification");
 const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
 const { allowDebugOtpExposure, isProduction, getJwtSecret, getAdminEmail } = require("../config/runtime");
 
@@ -348,10 +348,6 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Valid phone number is required" });
     }
 
-    if (!req.body.emailOtpVerified) {
-        return res.status(400).json({ message: "Email OTP verification is required" });
-    }
-
     if (!req.body.phoneOtpVerified) {
         return res.status(400).json({ message: "Phone OTP verification is required" });
     }
@@ -376,11 +372,6 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Phone number is already linked to another account" });
     }
 
-    const emailVerification = await getVerifiedEmailSession(normalizedEmail);
-    if (!emailVerification || emailVerification.consumedAt) {
-        return res.status(400).json({ message: "Email verification expired or is missing. Verify again." });
-    }
-
     const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
     if (!phoneVerification || phoneVerification.consumedAt) {
         return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
@@ -402,7 +393,6 @@ exports.signup = async (req, res)=>{
             name,
             email: normalizedEmail,
             phone: normalizedPhone,
-            emailVerifiedAt: emailVerification.verifiedAt,
             phoneVerifiedAt: phoneVerification.verifiedAt,
             role,
             password : hashedPassword
@@ -451,9 +441,8 @@ exports.signup = async (req, res)=>{
 
         }
 
-        emailVerification.consumedAt = new Date();
         phoneVerification.consumedAt = new Date();
-        await Promise.all([emailVerification.save(), phoneVerification.save()]);
+        await phoneVerification.save();
     } catch (error) {
         if (user?._id && role === "presswala" && !pressShop) {
             await User.deleteOne({ _id: user._id });
