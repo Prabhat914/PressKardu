@@ -287,9 +287,9 @@ exports.login = async (req, res) =>{
         return res.status(400).json({ message: "Invalid password"});
     }
 
-    if (user.role !== "admin" && (!user.emailVerifiedAt || !user.phoneVerifiedAt)) {
+    if (user.role !== "admin" && !user.phoneVerifiedAt) {
         return res.status(403).json({
-            message: "Account verification is incomplete. Please verify email and phone before logging in."
+            message: "Account verification is incomplete. Please verify your phone before logging in."
         });
     }
 
