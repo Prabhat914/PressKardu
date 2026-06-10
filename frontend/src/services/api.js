@@ -36,7 +36,7 @@ if (configuredApiBaseUrl && !/^https?:\/\//i.test(configuredApiBaseUrl)) {
 
 const API = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 15000
+  timeout: 45000
 });
 
 API.interceptors.request.use((req) => {
