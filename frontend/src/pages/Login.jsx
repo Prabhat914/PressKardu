@@ -17,12 +17,67 @@ function Login() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+  const [phoneVerification, setPhoneVerification] = useState({
+    phone: "",
+    otp: ""
+  });
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
 
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handlePhoneVerificationChange = (e) => {
+    setPhoneVerification({
+      ...phoneVerification,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSendPhoneOtp = async () => {
+    if (!phoneVerification.phone.trim()) {
+      setMessage("Enter the phone number linked with this account.");
+      return;
+    }
+
+    try {
+      setOtpSending(true);
+      const res = await API.post("/auth/phone-verification/send-otp", {
+        phone: phoneVerification.phone
+      });
+      const debugText = res.data.debugOtp ? ` OTP: ${res.data.debugOtp}` : "";
+      setMessage(`${res.data.deliveryHint || res.data.message || "OTP sent."}${debugText}`);
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Could not send the phone OTP."));
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!phoneVerification.phone.trim() || !phoneVerification.otp.trim()) {
+      setMessage("Enter both phone number and OTP.");
+      return;
+    }
+
+    try {
+      setOtpVerifying(true);
+      const res = await API.post("/auth/phone-verification/verify-otp", {
+        phone: phoneVerification.phone,
+        otp: phoneVerification.otp
+      });
+      setShowPhoneVerification(false);
+      setMessage(res.data.message || "Phone verified. Login again.");
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Could not verify the phone OTP."));
+    } finally {
+      setOtpVerifying(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -44,6 +99,9 @@ function Login() {
 
     } catch (error) {
       console.log(error);
+      if (error?.response?.data?.verificationRequired === "phone") {
+        setShowPhoneVerification(true);
+      }
       setMessage(getApiErrorMessage(error, "Login complete nahi ho paaya. Dobara try karo."));
     } finally {
       setLoading(false);
@@ -141,6 +199,47 @@ function Login() {
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
+
+          {showPhoneVerification && (
+            <div className="auth-section">
+              <div className="auth-section__head">
+                <strong>Verify phone</strong>
+                <span>OTP bypass nahi hota. Phone verify karo, phir login retry karo.</span>
+              </div>
+              <div className="auth-form__split">
+                <label className="auth-field">
+                  <span className="auth-field__label">Phone</span>
+                  <input
+                    className="auth-field__input"
+                    name="phone"
+                    placeholder="Mobile number"
+                    onChange={handlePhoneVerificationChange}
+                    value={phoneVerification.phone}
+                    autoComplete="tel"
+                  />
+                </label>
+                <label className="auth-field">
+                  <span className="auth-field__label">OTP</span>
+                  <input
+                    className="auth-field__input"
+                    name="otp"
+                    placeholder="Enter OTP"
+                    onChange={handlePhoneVerificationChange}
+                    value={phoneVerification.otp}
+                    autoComplete="one-time-code"
+                  />
+                </label>
+              </div>
+              <div className="auth-location-card__actions">
+                <button className="auth-form__secondary" type="button" onClick={handleSendPhoneOtp} disabled={otpSending}>
+                  {otpSending ? "Sending..." : "Send OTP"}
+                </button>
+                <button className="auth-form__secondary" type="button" onClick={handleVerifyPhoneOtp} disabled={otpVerifying}>
+                  {otpVerifying ? "Verifying..." : "Verify OTP"}
+                </button>
+              </div>
+            </div>
+          )}
 
           <p className="auth-card__switch">
             New here? <Link to="/signup">Create an account</Link>

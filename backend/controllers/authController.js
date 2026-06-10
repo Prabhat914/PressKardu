@@ -79,14 +79,18 @@ exports.sendEmailVerificationOtp = async (req, res) => {
     await EmailVerificationSession.findOneAndUpdate(
         { email: normalizedEmail },
         {
-            email: normalizedEmail,
-            otpHash: hashValue(otp),
-            otpExpiresAt,
-            verifiedAt: undefined,
-            consumedAt: undefined,
-            attempts: 0,
-            lastSentAt: new Date(),
-            purpose: "signup"
+            $set: {
+                email: normalizedEmail,
+                otpHash: hashValue(otp),
+                otpExpiresAt,
+                attempts: 0,
+                lastSentAt: new Date(),
+                purpose: "signup"
+            },
+            $unset: {
+                verifiedAt: "",
+                consumedAt: ""
+            }
         },
         {
             upsert: true,
@@ -157,7 +161,7 @@ exports.sendPhoneVerificationOtp = async (req, res) => {
     }
 
     const duplicatePhoneUser = await User.findOne({ phone: normalizedPhone });
-    if (duplicatePhoneUser) {
+    if (duplicatePhoneUser?.phoneVerifiedAt) {
         return res.status(400).json({ message: "Phone number is already linked to another account" });
     }
 
@@ -178,14 +182,18 @@ exports.sendPhoneVerificationOtp = async (req, res) => {
     await PhoneVerificationSession.findOneAndUpdate(
         { phone: normalizedPhone },
         {
-            phone: normalizedPhone,
-            otpHash: hashValue(otp),
-            otpExpiresAt,
-            verifiedAt: undefined,
-            consumedAt: undefined,
-            attempts: 0,
-            lastSentAt: new Date(),
-            purpose: "signup"
+            $set: {
+                phone: normalizedPhone,
+                otpHash: hashValue(otp),
+                otpExpiresAt,
+                attempts: 0,
+                lastSentAt: new Date(),
+                purpose: "signup"
+            },
+            $unset: {
+                verifiedAt: "",
+                consumedAt: ""
+            }
         },
         {
             upsert: true,
@@ -241,8 +249,23 @@ exports.verifyPhoneVerificationOtp = async (req, res) => {
     session.attempts = 0;
     await session.save();
 
+    const linkedUser = await User.findOne({ phone: normalizedPhone });
+    if (linkedUser && !linkedUser.phoneVerifiedAt) {
+        linkedUser.phoneVerifiedAt = session.verifiedAt;
+        await linkedUser.save();
+
+        if (linkedUser.role === "presswala") {
+            await PressShop.updateOne(
+                { ownerUser: linkedUser._id, phone: normalizedPhone, phoneVerifiedAt: { $exists: false } },
+                { $set: { phoneVerifiedAt: session.verifiedAt } }
+            );
+        }
+    }
+
     res.json({
-        message: "Phone number verified successfully.",
+        message: linkedUser
+            ? "Phone number verified successfully. You can now login."
+            : "Phone number verified successfully.",
         phone: normalizedPhone,
         verifiedAt: session.verifiedAt
     });
@@ -289,7 +312,8 @@ exports.login = async (req, res) =>{
 
     if (user.role !== "admin" && !user.phoneVerifiedAt) {
         return res.status(403).json({
-            message: "Account verification is incomplete. Please verify your phone before logging in."
+            message: "Account verification is incomplete. Please verify your phone before logging in.",
+            verificationRequired: "phone"
         });
     }
 
