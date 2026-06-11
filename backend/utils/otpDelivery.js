@@ -64,6 +64,10 @@ function requireValue(value, message) {
   }
 }
 
+function getSmsProviderPreference() {
+  return String(process.env.OTP_SMS_PROVIDER || "").trim().toLowerCase();
+}
+
 function formatSmsPhoneNumber(phone, { defaultCountryCode = "91" } = {}) {
   const rawPhone = String(phone || "").trim();
 
@@ -182,6 +186,34 @@ async function sendViaTwilio({ phone, otp, message }) {
   return { channel: "sms", target: phone, provider: "twilio" };
 }
 
+async function sendViaTwoFactor({ phone, otp }) {
+  requireValue(process.env.TWOFACTOR_API_KEY, "TWOFACTOR_API_KEY is not configured");
+
+  const normalizedPhone = formatSmsPhoneNumber(phone).replace(/^\+/, "");
+  const templateName = encodeURIComponent(process.env.TWOFACTOR_TEMPLATE_NAME || "PressKardu");
+  const url = `https://2factor.in/API/V1/${encodeURIComponent(process.env.TWOFACTOR_API_KEY)}/SMS/${normalizedPhone}/${encodeURIComponent(otp)}/${templateName}`;
+  const response = await fetch(url);
+  const contentType = response.headers.get("content-type") || "";
+  const payload = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok || payload?.Status === "Error") {
+    const providerMessage = payload?.Details || payload?.message || payload || "2Factor SMS delivery failed";
+    throw createOtpDeliveryError(
+      "2Factor SMS OTP delivery failed. Check TWOFACTOR_API_KEY, template approval, and account balance.",
+      providerMessage
+    );
+  }
+
+  return {
+    channel: "sms",
+    target: phone,
+    provider: "2factor",
+    deliveryId: payload?.Details
+  };
+}
+
 async function sendViaWebhook({ channel, email, phone, otp, subject, message }) {
   if (channel === "email" && process.env.OTP_EMAIL_WEBHOOK_URL) {
     await postJson(process.env.OTP_EMAIL_WEBHOOK_URL, {
@@ -254,7 +286,25 @@ async function deliverOtp({ channel, email, phone, otp, purpose = "verification"
     }
   }
 
-  if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
+  if (
+    channel === "sms" &&
+    getSmsProviderPreference() === "2factor" &&
+    process.env.TWOFACTOR_API_KEY
+  ) {
+    const delivery = await tryProvider("2factor", async () => {
+      return await sendViaTwoFactor({ phone, otp });
+    });
+
+    if (delivery) {
+      return delivery;
+    }
+  }
+
+  if (
+    channel === "sms" &&
+    getSmsProviderPreference() !== "2factor" &&
+    process.env.TWILIO_ACCOUNT_SID
+  ) {
     const delivery = await tryProvider("twilio", async () => {
       return await sendViaTwilio({ phone, otp, message: textMessage });
     });
@@ -313,10 +363,13 @@ function getOtpDeliveryStatus() {
     },
     sms: {
       configured: Boolean(
+        (getSmsProviderPreference() === "2factor" && process.env.TWOFACTOR_API_KEY) ||
         (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) ||
         process.env.OTP_SMS_WEBHOOK_URL
       ),
-      provider: process.env.TWILIO_ACCOUNT_SID
+      provider: getSmsProviderPreference() === "2factor" && process.env.TWOFACTOR_API_KEY
+        ? "2factor"
+        : process.env.TWILIO_ACCOUNT_SID
         ? "twilio"
         : process.env.OTP_SMS_WEBHOOK_URL
         ? "sms-webhook"
