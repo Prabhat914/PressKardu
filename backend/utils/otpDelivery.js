@@ -190,7 +190,7 @@ async function sendViaTwoFactor({ phone, otp }) {
   requireValue(process.env.TWOFACTOR_API_KEY, "TWOFACTOR_API_KEY is not configured");
 
   const normalizedPhone = formatSmsPhoneNumber(phone).replace(/^\+/, "");
-  const templateName = encodeURIComponent(process.env.TWOFACTOR_TEMPLATE_NAME || "PressKardu");
+  const templateName = encodeURIComponent(process.env.TWOFACTOR_TEMPLATE_NAME || "OTP1");
   const url = `https://2factor.in/API/V1/${encodeURIComponent(process.env.TWOFACTOR_API_KEY)}/SMS/${normalizedPhone}/${encodeURIComponent(otp)}/${templateName}`;
   const response = await fetch(url);
   const contentType = response.headers.get("content-type") || "";
@@ -201,7 +201,7 @@ async function sendViaTwoFactor({ phone, otp }) {
   if (!response.ok || payload?.Status === "Error") {
     const providerMessage = payload?.Details || payload?.message || payload || "2Factor SMS delivery failed";
     throw createOtpDeliveryError(
-      "2Factor SMS OTP delivery failed. Check TWOFACTOR_API_KEY, template approval, and account balance.",
+      `2Factor SMS OTP delivery failed: ${providerMessage}. Check TWOFACTOR_API_KEY, TWOFACTOR_TEMPLATE_NAME, template approval, and account balance.`,
       providerMessage
     );
   }

@@ -73,7 +73,7 @@ Render setup steps:
    - `RESEND_*` / `BREVO_*` for optional email flows like forgot password, or
    - webhook URLs
    - Signup requires phone OTP only. Resend requires a verified domain before it can send email to normal users.
-   - `TWOFACTOR_TEMPLATE_NAME` is optional and defaults to `PressKardu`.
+   - `TWOFACTOR_TEMPLATE_NAME` is optional and defaults to `OTP1`; set it to the exact approved template name from your 2Factor dashboard if you created a custom template.
    - `TWILIO_PHONE_NUMBER` must be a Twilio-owned sender number from your Twilio console, not your personal mobile number.
 7. Keep `ALLOW_DEBUG_OTP=false` in production.
 8. Set `PHONE_OTP_COOLDOWN_SECONDS` and `PHONE_VERIFICATION_MAX_AGE_MINUTES` to match your verification policy.
@@ -139,7 +139,7 @@ PHONE_OTP_COOLDOWN_SECONDS=45
 PHONE_VERIFICATION_MAX_AGE_MINUTES=10
 OTP_SMS_PROVIDER=2factor
 TWOFACTOR_API_KEY=<2factor-api-key>
-TWOFACTOR_TEMPLATE_NAME=PressKardu
+TWOFACTOR_TEMPLATE_NAME=OTP1
 TWILIO_ACCOUNT_SID=<twilio-account-sid>
 TWILIO_AUTH_TOKEN=<twilio-auth-token>
 TWILIO_PHONE_NUMBER=<twilio-owned-sender-phone>
