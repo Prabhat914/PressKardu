@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PressCard from "../components/PressCard";
 import Map from "../components/Map";
-import LazyPressScene from "../components/LazyPressScene";
 import LoadingCards from "../components/LoadingCards";
 import Toast from "../components/Toast";
 import API from "../services/api";
@@ -104,7 +103,7 @@ function PressShops() {
       if (incomingShops.length === 0) {
         setAllShops([]);
         setShops([]);
-        setStatus(`"${query}" ke liye koi live shop nahi mila. Dusra city ya area try karo.`);
+        setStatus(`No live shop was found for "${query}". Try another city or area.`);
         setMapCenter(location);
       } else {
         applyShopCollection(incomingShops, location, `Showing live shop results for "${query}".`);
@@ -113,7 +112,7 @@ function PressShops() {
       console.log(requestError);
       setAllShops([]);
       setShops([]);
-      setStatus(getApiErrorMessage(requestError, "Search complete nahi ho paayi. Thoda baad try karo."));
+      setStatus(getApiErrorMessage(requestError, "Search could not be completed. Please try again shortly."));
     } finally {
       setLoading(false);
       setSearching(false);
@@ -219,7 +218,10 @@ function PressShops() {
               Browse nearby partners, or search any city, area, or shop name when you want to compare options beyond your current location.
             </p>
           </div>
-          <LazyPressScene />
+          <div className="press-shops-page__brand-preview" aria-hidden="true">
+            <strong>PressKardu</strong>
+            <span>Compare local press shops, pricing, distance, and delivery speed.</span>
+          </div>
         </div>
         <Map shops={shops} userLocation={location} center={mapCenter} />
       </div>

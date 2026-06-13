@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Map from "../components/Map";
 import PressCard from "../components/PressCard";
-import LazyPressScene from "../components/LazyPressScene";
-import OpeningIntro from "../components/OpeningIntro";
 import Toast from "../components/Toast";
 import LoadingCards from "../components/LoadingCards";
 import API from "../services/api";
@@ -207,13 +205,13 @@ function Home() {
         if (incomingShops.length === 0) {
           showFallbackShops(
             userLocation,
-            "Abhi live approved shops available nahi hain, isliye curated PressKardu preview shops dikh rahe hain."
+            "No approved live shops are available yet, so curated PressKardu preview shops are shown."
           );
         } else {
           applyShopCollection(
             incomingShops,
             userLocation,
-            "Shopkeeper ke added live shops yahan dikh rahe hain. Current location add karke nearby shops dekh sakte ho."
+            "Live shops added by shopkeepers are shown here. Add your current location to see nearby shops."
           );
         }
       } catch (requestError) {
@@ -222,7 +220,7 @@ function Home() {
           userLocation,
           getApiErrorMessage(
             requestError,
-            "Live shops API unavailable hai. Filhal curated PressKardu preview shops dikh rahe hain."
+            "The live shops API is unavailable. Curated PressKardu preview shops are shown for now."
           )
         );
       } finally {
@@ -235,7 +233,7 @@ function Home() {
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setStatus("Browser me location support nahi hai, isliye all live shops hi dikh rahe hain.");
+      setStatus("Your browser does not support location access, so all live shops are shown.");
       return;
     }
 
@@ -257,16 +255,16 @@ function Home() {
           if (incomingShops.length === 0) {
             showFallbackShops(
               nextLocation,
-              "Aapke nearby koi approved live shop nahi mila, isliye curated preview shops dikh rahe hain."
+              "No approved live shops were found near you, so curated preview shops are shown."
             );
           } else {
-            applyShopCollection(incomingShops, nextLocation, "Aapke current location ke nearby shops dikh rahe hain.");
+            applyShopCollection(incomingShops, nextLocation, "Shops near your current location are shown.");
           }
         } catch (requestError) {
           console.log(requestError);
           showFallbackShops(
             nextLocation,
-            getApiErrorMessage(requestError, "Nearby shops load nahi ho paaye. Filhal curated preview shops dikh rahe hain.")
+            getApiErrorMessage(requestError, "Nearby shops could not be loaded. Curated preview shops are shown for now.")
           );
         } finally {
           setLoading(false);
@@ -275,9 +273,9 @@ function Home() {
       },
       (error) => {
         if (error?.code === 1) {
-          setStatus("Location permission deny ho gayi. Filhal all live shops hi dikh rahe hain.");
+          setStatus("Location permission was denied. All live shops are shown for now.");
         } else {
-          setStatus("Current location detect nahi ho paayi. Filhal all live shops hi dikh rahe hain.");
+          setStatus("Could not detect your current location. All live shops are shown for now.");
         }
         setLocating(false);
       }
@@ -295,20 +293,20 @@ function Home() {
       if (incomingShops.length === 0) {
         showFallbackShops(
           userLocation,
-          "Abhi live approved shops available nahi hain, isliye curated PressKardu preview shops dikh rahe hain."
+          "No approved live shops are available yet, so curated PressKardu preview shops are shown."
         );
       } else {
         applyShopCollection(
           incomingShops,
           userLocation,
-          "All live shops dikh rahe hain. Current location add karke nearby shops par switch kar sakte ho."
+          "All live shops are shown. Add your current location to switch to nearby shops."
         );
       }
     } catch (requestError) {
       console.log(requestError);
       showFallbackShops(
         userLocation,
-        getApiErrorMessage(requestError, "All shops load nahi ho paaye. Filhal curated preview shops dikh rahe hain.")
+        getApiErrorMessage(requestError, "All shops could not be loaded. Curated preview shops are shown for now.")
       );
     } finally {
       setLoading(false);
@@ -359,7 +357,7 @@ function Home() {
 
     if (!isBookableShop(selectedShop)) {
       setOrderMessageTone("warning");
-      setOrderMessage("Ye curated preview shop hai. Live booking ke liye koi real nearby shop select karo.");
+      setOrderMessage("This is a curated preview shop. Select a real nearby shop for live booking.");
       return;
     }
 
@@ -371,7 +369,7 @@ function Home() {
 
     if (!orderForm.pickupAddress.trim()) {
       setOrderMessageTone("warning");
-      setOrderMessage("Pickup address bharna zaroori hai.");
+      setOrderMessage("Pickup address is required.");
       return;
     }
 
@@ -382,7 +380,7 @@ function Home() {
 
     try {
       if (orderForm.paymentMode === "online" && !shopSupportsOnlinePayments(selectedShop)) {
-        throw new Error("Selected shop abhi online payments support nahi karta. Offline payment choose karo ya Pro/Premium shop select karo.");
+        throw new Error("The selected shop does not support online payments yet. Choose offline payment or select a Pro/Premium shop.");
       }
 
       const res = await API.post("/orders", {
@@ -440,7 +438,7 @@ function Home() {
     } catch (requestError) {
       setPaymentStage("idle");
       setOrderMessageTone("warning");
-      setOrderMessage(getApiErrorMessage(requestError, "Order create nahi ho paaya."));
+      setOrderMessage(getApiErrorMessage(requestError, "The order could not be created."));
     } finally {
       setSubmittingOrder(false);
     }
@@ -448,10 +446,9 @@ function Home() {
 
   return (
     <main className="home-shops">
-      {!currentUser && <OpeningIntro />}
       {!currentUser && guestDemo && (
         <Toast
-          message="Guest demo active hai. Aap shops, maps, pricing, aur details explore kar sakte ho. Booking ke liye login zaroori rahega."
+          message="Guest demo is active. You can explore shops, maps, pricing, and details. Login is required for booking."
           tone="info"
         />
       )}
@@ -463,8 +460,8 @@ function Home() {
               <img className="home-shops__hero-logo" src="/presskardu-logo.png" alt="PressKardu professional ironing service logo" />
             </div>
             <div className="home-shops__hero-badges">
-              <span>Animated local-first marketplace</span>
-              <span>Pickup to payment in one polished flow</span>
+              <span>Local pressing marketplace</span>
+              <span>Pickup to delivery in one polished flow</span>
             </div>
             <p className="home-shops__eyebrow">PressKardu</p>
             <div className="home-shops__eyebrow-line" />
@@ -498,7 +495,7 @@ function Home() {
                   onClick={() => {
                     enableGuestDemo();
                     setOrderMessageTone("info");
-                    setOrderMessage("Guest demo start ho gaya. Shops, maps, aur pricing freely explore karo.");
+                    setOrderMessage("Guest demo started. Explore shops, maps, and pricing freely.");
                   }}
                 >
                   {guestDemo ? "Guest demo active" : "Explore as guest"}
@@ -534,8 +531,6 @@ function Home() {
           </div>
 
           <div className="home-shops__hero-visual">
-            <div className="home-shops__orb home-shops__orb--one" />
-            <div className="home-shops__orb home-shops__orb--two" />
             <div className="home-shops__float-card home-shops__float-card--eta">
               <strong>18 min</strong>
               <span>Fastest pickup window nearby</span>
@@ -547,12 +542,30 @@ function Home() {
             <div className="home-shops__visual-card">
               <div className="home-shops__visual-head">
                 <div>
-                  <p>Live service preview</p>
-                  <h2>Sharper, faster, cleaner</h2>
+                  <p>PressKardu service preview</p>
+                  <h2>Book. Press. Deliver.</h2>
                 </div>
-                <span>Animated</span>
+                <span>Live</span>
               </div>
-              <LazyPressScene />
+              <div className="home-shops__press-board" aria-label="PressKardu ironing service preview">
+                <div className="home-shops__press-shirt">
+                  <span className="home-shops__collar" />
+                  <span className="home-shops__crease home-shops__crease--one" />
+                  <span className="home-shops__crease home-shops__crease--two" />
+                  <span className="home-shops__sleeve home-shops__sleeve--left" />
+                  <span className="home-shops__sleeve home-shops__sleeve--right" />
+                </div>
+                <div className="home-shops__iron-card">
+                  <span className="home-shops__iron-handle" />
+                  <strong>Fresh press</strong>
+                  <small>Quality checked</small>
+                </div>
+                <div className="home-shops__service-rail">
+                  <span>Pickup</span>
+                  <span>Steam press</span>
+                  <span>Return</span>
+                </div>
+              </div>
               <div className="home-shops__visual-foot">
                 <div>
                   <strong>Premium pressing</strong>
@@ -673,7 +686,7 @@ function Home() {
           <h2>{shopScope === "nearby" ? "Choose a nearby shop" : "Choose from all live shops"}</h2>
         </div>
         <p>
-          Shopkeeper jab address ke saath shop add karega to wo yahan show hoga. User current location add kare to list nearby shops par shift ho jayegi.
+          Approved shopkeeper listings appear here. Use your current location to switch from all shops to nearby partners.
         </p>
       </section>
 
@@ -711,20 +724,20 @@ function Home() {
             onAction={() => {
               if (!currentUser) {
                 setOrderMessageTone("warning");
-                setOrderMessage(guestDemo ? "Guest demo me browsing allowed hai, lekin live request bhejne ke liye login zaroori hai." : "Login karo, phir request form khul jayega.");
+                setOrderMessage(guestDemo ? "Browsing is allowed in guest demo, but login is required to send a live request." : "Login first, then the request form will open.");
                 navigate("/login");
                 return;
               }
 
               if (!isBookableShop(shop)) {
                 setOrderMessageTone("warning");
-                setOrderMessage("Curated fallback shops par live booking available nahi hai.");
+                setOrderMessage("Live booking is not available for curated fallback shops.");
                 return;
               }
 
               setSelectedShop(shop);
               setOrderMessageTone("info");
-              setOrderMessage(`"${shop.shopName}" ke liye request form neeche khul gaya hai. Pickup address bharke confirm karo.`);
+              setOrderMessage(`The request form for "${shop.shopName}" is open below. Add the pickup address and confirm.`);
             }}
             actionDisabled={currentUser ? !isBookableShop(shop) : false}
             secondaryActionLabel={openMapShopId === shop._id ? "Hide map" : "Open map"}
@@ -756,7 +769,7 @@ function Home() {
 
       {!loading && filteredShops.length === 0 && shopSearch.trim() && (
         <p className="home-shops__state home-shops__state--warning">
-          Is search se koi shop match nahi hui. Dusra keyword try karo.
+          No shop matched this search. Try another keyword.
         </p>
       )}
 
@@ -774,7 +787,7 @@ function Home() {
           <form className="order-request__form" onSubmit={handleRequestOrder}>
             {!shopSupportsOnlinePayments(selectedShop) && (
               <p className="auth-card__message">
-                Ye shop abhi offline payments accept karta hai. Online checkout ke liye Pro ya Premium subscribed shop chahiye.
+                This shop currently accepts offline payments only. Online checkout requires a Pro or Premium subscribed shop.
               </p>
             )}
             <div className="order-request__split">

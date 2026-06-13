@@ -40,7 +40,7 @@ function ShopDetails() {
           setShop(fallback);
           setMessage("Live details unavailable, showing curated partner profile.");
         } else {
-          setMessage(getApiErrorMessage(error, "Shop details nahi mil paaye."));
+          setMessage(getApiErrorMessage(error, "Shop details could not be loaded."));
         }
       }
     };
@@ -74,7 +74,7 @@ function ShopDetails() {
         reporterContact: ""
       });
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Report submit nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The report could not be submitted."));
     } finally {
       setReporting(false);
     }

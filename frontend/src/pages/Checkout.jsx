@@ -157,7 +157,7 @@ function Checkout() {
       setMessageTone("success");
       window.setTimeout(() => navigate("/orders"), 900);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Checkout complete nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "Checkout could not be completed."));
       setMessageTone("warning");
     } finally {
       setSubmitting(false);

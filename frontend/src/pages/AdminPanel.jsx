@@ -30,7 +30,7 @@ function AdminPanel() {
           setShops([]);
           setIsLiveAdminData(false);
           setMessageTone("warning");
-          setMessage(getApiErrorMessage(shopsRes.reason, "Admin shop queue load nahi ho paayi. Admin login ya backend restart check karo."));
+          setMessage(getApiErrorMessage(shopsRes.reason, "The admin shop queue could not be loaded. Check admin login or backend restart status."));
         }
 
         if (overviewRes.status === "fulfilled") {
@@ -43,7 +43,7 @@ function AdminPanel() {
             revenue: 0
           });
           setMessageTone("warning");
-          setMessage((current) => current || getApiErrorMessage(overviewRes.reason, "Admin overview load nahi hua. Shayad current account admin nahi hai."));
+          setMessage((current) => current || getApiErrorMessage(overviewRes.reason, "The admin overview could not be loaded. The current account may not have admin access."));
         }
       } catch (error) {
         setShops([]);
@@ -55,7 +55,7 @@ function AdminPanel() {
           revenue: 0
         });
         setMessageTone("warning");
-        setMessage(getApiErrorMessage(error, "Admin data unavailable. Backend ya admin session check karo."));
+        setMessage(getApiErrorMessage(error, "Admin data is unavailable. Check the backend or admin session."));
       }
     };
 
@@ -74,7 +74,7 @@ function AdminPanel() {
       setMessage(res.data.message || "Shop updated.");
     } catch (error) {
       setMessageTone("warning");
-      setMessage(getApiErrorMessage(error, "Shop review update nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The shop review could not be updated."));
     } finally {
       setReviewingShopId("");
     }
@@ -139,7 +139,7 @@ function AdminPanel() {
       setMessage(res.data.message || "Payout settled.");
     } catch (error) {
       setMessageTone("warning");
-      setMessage(getApiErrorMessage(error, "Payout settle nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The payout could not be settled."));
     } finally {
       setReviewingShopId("");
     }
@@ -307,7 +307,7 @@ function AdminPanel() {
                           setMessage(res.data.message || "Subscription approved.");
                         } catch {
                           setMessageTone("warning");
-                          setMessage("Offline subscription approve nahi ho paya.");
+                          setMessage("The offline subscription could not be approved.");
                         } finally {
                           setReviewingShopId("");
                         }
@@ -327,7 +327,7 @@ function AdminPanel() {
           <h2>Approve or reject suspicious listings</h2>
           {!isLiveAdminData && (
             <p className="auth-card__message">
-              Verification buttons tabhi kaam karenge jab live admin queue load ho. Abhi ya to admin auth fail hai ya backend restart pending hai.
+              Verification buttons work only after the live admin queue loads. Admin authentication may have failed, or the backend may still be restarting.
             </p>
           )}
           <div className="offer-stack">

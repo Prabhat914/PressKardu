@@ -120,7 +120,7 @@ function Dashboard() {
           setMessage("Live dashboard data unavailable, showing planning-friendly recommendations instead.");
         }
       } catch (error) {
-        setMessage(getApiErrorMessage(error, "Dashboard abhi load nahi ho pa raha."));
+        setMessage(getApiErrorMessage(error, "The dashboard could not be loaded right now."));
       }
     };
 
@@ -135,7 +135,7 @@ function Dashboard() {
       try {
         await refreshProfile();
       } catch (error) {
-        setProfileMessage(getApiErrorMessage(error, "Profile details load nahi ho paaye."));
+        setProfileMessage(getApiErrorMessage(error, "Profile details could not be loaded."));
       }
     };
 
@@ -153,7 +153,7 @@ function Dashboard() {
 
   const handleSendPhoneOtp = async () => {
     if (!profileForm.phone.trim()) {
-      setProfileMessage("Phone number enter karo, phir OTP bhejo.");
+      setProfileMessage("Enter a phone number before sending an OTP.");
       return;
     }
 
@@ -165,7 +165,7 @@ function Dashboard() {
       setProfileMessage(res.data.deliveryHint || res.data.message || "OTP sent.");
       setSubscriptionMessage("");
     } catch (error) {
-      setProfileMessage(getApiErrorMessage(error, "Phone OTP bhejna possible nahi hua."));
+      setProfileMessage(getApiErrorMessage(error, "The phone OTP could not be sent."));
     } finally {
       setOtpSending(false);
     }
@@ -173,7 +173,7 @@ function Dashboard() {
 
   const handleVerifyPhoneOtp = async () => {
     if (!profileForm.phone.trim() || !profileForm.phoneOtp.trim()) {
-      setProfileMessage("Phone number aur OTP dono enter karo.");
+      setProfileMessage("Enter both phone number and OTP.");
       return;
     }
 
@@ -194,7 +194,7 @@ function Dashboard() {
         ...current,
         phoneOtpVerified: false
       }));
-      setProfileMessage(getApiErrorMessage(error, "Phone OTP verify nahi hua."));
+      setProfileMessage(getApiErrorMessage(error, "The phone OTP could not be verified."));
     } finally {
       setOtpVerifying(false);
     }
@@ -204,7 +204,7 @@ function Dashboard() {
     event.preventDefault();
 
     if (phoneNeedsVerification && !profileForm.phoneOtpVerified) {
-      setProfileMessage("Naya phone number save karne se pehle OTP verify karo.");
+      setProfileMessage("Verify the new phone number before saving it.");
       setSubscriptionMessage("");
       return;
     }
@@ -247,11 +247,11 @@ function Dashboard() {
       applyProfilePayload(res.data);
       setProfileMessage(
         res.data.pressShop?.verificationStatus === "pending"
-          ? "Profile updated. Shop abhi pending state me hi hai."
-          : "Profile updated successfully. Approved shops auto-pending me wapas nahi jayengi."
+          ? "Profile updated. The shop is still pending review."
+          : "Profile updated successfully. Approved shops will not automatically return to pending."
       );
     } catch (error) {
-      setProfileMessage(getApiErrorMessage(error, "Profile update nahi ho paaya."));
+      setProfileMessage(getApiErrorMessage(error, "The profile could not be updated."));
     } finally {
       setSavingProfile(false);
     }
@@ -302,7 +302,7 @@ function Dashboard() {
 
       if (paymentMode === "online" && res.data.paymentSession) {
         if (res.data.paymentSession.provider !== "razorpay") {
-          setSubscriptionMessage("Online payment gateway abhi ready nahi hai. Filhal offline request use karo.");
+          setSubscriptionMessage("The online payment gateway is not ready yet. Use an offline request for now.");
           return;
         }
 
@@ -325,14 +325,14 @@ function Dashboard() {
         setSubscriptionMessage(res.data.message || "Subscription updated.");
       }
     } catch (error) {
-      setSubscriptionMessage(getApiErrorMessage(error, "Subscription update nahi ho paaya."));
+      setSubscriptionMessage(getApiErrorMessage(error, "The subscription could not be updated."));
     } finally {
       setSubscriptionLoading("");
     }
   };
 
   const actionToastMessage = subscriptionMessage || profileMessage;
-  const actionToastTone = actionToastMessage && !/(nahi|error|invalid|required|unavailable|failed|missing)/i.test(actionToastMessage)
+  const actionToastTone = actionToastMessage && !/(error|invalid|required|unavailable|failed|missing|could not)/i.test(actionToastMessage)
     ? "success"
     : "warning";
 
@@ -408,7 +408,7 @@ function Dashboard() {
               </article>
             ))}
             {notifications.length === 0 && (
-              <p className="dashboard-empty">New alerts yahan show hongi when order status, payment, or tracking changes.</p>
+              <p className="dashboard-empty">New alerts will appear here when order status, payment, or tracking changes.</p>
             )}
           </div>
         </article>
@@ -583,7 +583,7 @@ function Dashboard() {
                   <div className="auth-location-card">
                     <div className="auth-location-card__head">
                       <strong>{profileForm.phoneOtpVerified ? "New phone verified" : "Verify new phone"}</strong>
-                      <span>Phone number badalne ke baad save se pehle OTP verify karna zaroori hai.</span>
+                      <span>Verify the new phone number before saving profile changes.</span>
                     </div>
                     <div className="auth-form__split">
                       <label className="auth-field">
@@ -628,7 +628,7 @@ function Dashboard() {
                 </div>
 
                 <p className="auth-card__message">
-                  Changing phone, address, ya map coordinates ab shop ko auto-pending me nahi bhejega. Admin chahe to manual review kar sakta hai.
+                  Changing phone, address, or map coordinates will not automatically move the shop back to pending. Admins can still review manually.
                 </p>
 
                 <div className="auth-form__split">
@@ -658,7 +658,7 @@ function Dashboard() {
                 <div className="auth-section">
                   <div className="auth-section__head">
                     <strong>Payout account</strong>
-                    <span>Customer online payments pehle platform account me aate hain. Shop payout settle karne ke liye yahan UPI ya bank details save karo.</span>
+                    <span>Customer online payments first reach the platform account. Save UPI or bank details here so admins can settle shop payouts.</span>
                   </div>
 
                   <div className="auth-form__split">
@@ -717,7 +717,7 @@ function Dashboard() {
                 <span>{getStatusLabel(order.status)}</span>
               </div>
             ))}
-            {orders.length === 0 && <p className="dashboard-empty">Orders yahan show honge once you start booking.</p>}
+            {orders.length === 0 && <p className="dashboard-empty">Orders will appear here once you start booking.</p>}
           </div>
         </article>
       </section>
@@ -734,7 +734,7 @@ function Dashboard() {
               </Link>
             ))}
             {favoriteShops.length === 0 && (
-              <p className="dashboard-empty">Favorite shops save karke quick rebooking yahan pao.</p>
+              <p className="dashboard-empty">Save favorite shops here for faster repeat bookings.</p>
             )}
           </div>
         </article>

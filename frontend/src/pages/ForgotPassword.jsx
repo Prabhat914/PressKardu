@@ -34,7 +34,7 @@ function ForgotPassword() {
       });
     } catch (error) {
       setMessageTone("warning");
-      setMessage(getApiErrorMessage(error, "OTP send nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The OTP could not be sent."));
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ function ForgotPassword() {
           <p className="auth-card__eyebrow">Password recovery</p>
           <h2>Forgot password</h2>
           <p className="auth-card__copy">
-            Email ya SMS OTP ke through password reset start karo.
+            Start password reset with an email or SMS OTP.
           </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>

@@ -45,7 +45,7 @@ function Login() {
 
     } catch (error) {
       console.log(error);
-      setMessage(getApiErrorMessage(error, "Login complete nahi ho paaya. Dobara try karo."));
+      setMessage(getApiErrorMessage(error, "Login could not be completed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ function Login() {
           </p>
           <Toast message={message} tone="warning" inline />
           <p className="auth-card__message">
-            Platform admin bhi isi login page se sign in karega. Admin account public signup se create nahi hota.
+            Platform admins also sign in here. Admin accounts are not created through public signup.
           </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>

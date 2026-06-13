@@ -35,7 +35,7 @@ function ResetPassword() {
       setMessage("");
     } catch (error) {
       setMessageTone("warning");
-      setMessage(getApiErrorMessage(error, "OTP verify nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The OTP could not be verified."));
     } finally {
       setLoading(false);
     }
@@ -46,13 +46,13 @@ function ResetPassword() {
 
     if (form.password !== form.confirmPassword) {
       setMessageTone("warning");
-      setMessage("Password aur confirm password same hone chahiye.");
+      setMessage("Password and confirm password must match.");
       return;
     }
 
     if (!resetToken) {
       setMessageTone("warning");
-      setMessage("Pehle OTP verify karo.");
+      setMessage("Verify the OTP first.");
       return;
     }
 
@@ -71,7 +71,7 @@ function ResetPassword() {
       window.setTimeout(() => navigate("/login"), 1200);
     } catch (error) {
       setMessageTone("warning");
-      setMessage(getApiErrorMessage(error, "Password reset nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The password could not be reset."));
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,8 @@ function ResetPassword() {
           <h2>{isOtpVerified ? "Set new password" : "Verify OTP"}</h2>
           <p className="auth-card__copy">
             {isOtpVerified
-              ? "Ab apna naya password set karo."
-              : "Pehle OTP verify karo. Uske baad password fields unlock hongi."}
+              ? "Set your new password."
+              : "Verify the OTP first. Password fields unlock after verification."}
           </p>
 
           {!isOtpVerified ? (

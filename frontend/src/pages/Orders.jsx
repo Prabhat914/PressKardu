@@ -27,7 +27,7 @@ function Orders() {
         setMessage("");
       } catch (error) {
         console.log(error);
-        setMessage(getApiErrorMessage(error, "Orders abhi load nahi ho pa rahe."));
+        setMessage(getApiErrorMessage(error, "Orders could not be loaded right now."));
       } finally {
         setLoading(false);
       }
@@ -56,7 +56,7 @@ function Orders() {
       setMessage("");
     } catch (error) {
       console.log(error);
-      setMessage(getApiErrorMessage(error, "Order update nahi ho paaya."));
+      setMessage(getApiErrorMessage(error, "The order could not be updated."));
     }
   };
 
