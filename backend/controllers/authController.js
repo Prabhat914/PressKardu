@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const { generateOtp, generateResetToken, hashValue } = require("../utils/otp");
 const { deliverOtp, deliverResetOtp } = require("../utils/otpDelivery");
 const { EMAIL_OTP_EXPIRY_MINUTES, normalizeEmail } = require("../utils/emailVerification");
-const { PHONE_OTP_EXPIRY_MINUTES, getVerifiedPhoneSession, normalizePhone } = require("../utils/phoneVerification");
+const { PHONE_OTP_EXPIRY_MINUTES, normalizePhone } = require("../utils/phoneVerification");
 const { allowDebugOtpExposure, isProduction, getJwtSecret, getAdminEmail } = require("../config/runtime");
 
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
@@ -310,13 +310,6 @@ exports.login = async (req, res) =>{
         return res.status(400).json({ message: "Invalid password"});
     }
 
-    if (user.role !== "admin" && !user.phoneVerifiedAt) {
-        return res.status(403).json({
-            message: "Account verification is incomplete. Please verify your phone before logging in.",
-            verificationRequired: "phone"
-        });
-    }
-
     const token = jwt.sign(
         { id: user._id, role: user.role },
         getJwtSecret(),
@@ -372,10 +365,6 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Valid phone number is required" });
     }
 
-    if (!req.body.phoneOtpVerified) {
-        return res.status(400).json({ message: "Phone OTP verification is required" });
-    }
-
     if (role === "presswala") {
         if (!shopName || !address || latitude === undefined || longitude === undefined) {
             return res.status(400).json({
@@ -396,11 +385,6 @@ exports.signup = async (req, res)=>{
         return res.status(400).json({ message: "Phone number is already linked to another account" });
     }
 
-    const phoneVerification = await getVerifiedPhoneSession(normalizedPhone);
-    if (!phoneVerification || phoneVerification.consumedAt) {
-        return res.status(400).json({ message: "Phone verification expired or is missing. Verify again." });
-    }
-
     if (role === "presswala") {
         const duplicateShopPhone = await PressShop.findOne({ phone: normalizedPhone });
         if (duplicateShopPhone) {
@@ -417,7 +401,6 @@ exports.signup = async (req, res)=>{
             name,
             email: normalizedEmail,
             phone: normalizedPhone,
-            phoneVerifiedAt: phoneVerification.verifiedAt,
             role,
             password : hashedPassword
         });
@@ -436,7 +419,6 @@ exports.signup = async (req, res)=>{
                 shopName,
                 ownerName: name,
                 phone: normalizedPhone,
-                phoneVerifiedAt: phoneVerification.verifiedAt,
                 shopPhotoDataUrl: req.body.shopPhotoDataUrl,
                 verificationStatus: "pending",
                 verificationSubmittedAt: new Date(),
@@ -464,9 +446,6 @@ exports.signup = async (req, res)=>{
             });
 
         }
-
-        phoneVerification.consumedAt = new Date();
-        await phoneVerification.save();
     } catch (error) {
         if (user?._id && role === "presswala" && !pressShop) {
             await User.deleteOne({ _id: user._id });

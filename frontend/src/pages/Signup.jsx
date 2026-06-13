@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import API from "../services/api";
-import LazyPressScene from "../components/LazyPressScene";
-import OpeningIntro from "../components/OpeningIntro";
 import LocationPickerMap from "../components/LocationPickerMap";
 import { Link, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -12,7 +10,6 @@ import AuthVisibilityField from "../components/AuthVisibilityField";
 
 function Signup() {
   const navigate = useNavigate();
-  const [showShell, setShowShell] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,49 +22,26 @@ function Signup() {
     longitude: "",
     pricePerCloth: "",
     serviceRadiusKm: "5",
-    shopPhotoDataUrl: "",
-    phoneOtp: "",
-    phoneOtpVerified: false
+    shopPhotoDataUrl: ""
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [otpMeta, setOtpMeta] = useState({ retryAfterSeconds: 0, provider: "" });
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [isResolvingAddress, setIsResolvingAddress] = useState(false);
   const lastResolvedAddressRef = useRef("");
 
-  useEffect(() => {
-    if (otpMeta.retryAfterSeconds <= 0) {
-      return undefined;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setOtpMeta((current) => ({
-        ...current,
-        retryAfterSeconds: Math.max(0, current.retryAfterSeconds - 1)
-      }));
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [otpMeta.retryAfterSeconds]);
-
   const handleChange = (e) => {
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
-      ...(e.target.name === "phone" ? { phoneOtpVerified: false } : {})
+      [e.target.name]: e.target.value
     });
   };
 
   const handleRoleChange = (role) => {
     setForm((current) => ({
       ...current,
-      role,
-      phoneOtpVerified: current.phoneOtpVerified
+      role
     }));
-    setOtpMeta({ retryAfterSeconds: 0, provider: "" });
     setMessage("");
   };
 
@@ -80,7 +54,7 @@ function Signup() {
     }
 
     if (!file.type.startsWith("image/")) {
-      setMessage("Shop photo ke liye image file choose karo.");
+      setMessage("Choose an image file for the shop photo.");
       return;
     }
 
@@ -94,69 +68,9 @@ function Signup() {
     reader.readAsDataURL(file);
   };
 
-  const handleSendPhoneOtp = async () => {
-    if (!form.phone.trim()) {
-      setMessage("Pehle phone number enter karo.");
-      return;
-    }
-
-    try {
-      setOtpSending(true);
-      const res = await API.post("/auth/phone-verification/send-otp", {
-        phone: form.phone
-      });
-      setOtpMeta({
-        retryAfterSeconds: Number(res.data.retryAfterSeconds || 0),
-        provider: res.data.delivery?.provider || ""
-      });
-      const debugText = res.data.debugOtp ? ` OTP: ${res.data.debugOtp}` : "";
-      setMessage(`${res.data.deliveryHint || res.data.message || "OTP sent."}${debugText}`);
-    } catch (error) {
-      setOtpMeta({
-        retryAfterSeconds: Number(error?.response?.data?.retryAfterSeconds || 0),
-        provider: ""
-      });
-      setMessage(getApiErrorMessage(error, "Phone OTP bhejna possible nahi hua."));
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleVerifyPhoneOtp = async () => {
-    if (!form.phone.trim() || !form.phoneOtp.trim()) {
-      setMessage("Phone number aur OTP dono enter karo.");
-      return;
-    }
-
-    try {
-      setOtpVerifying(true);
-      const res = await API.post("/auth/phone-verification/verify-otp", {
-        phone: form.phone,
-        otp: form.phoneOtp
-      });
-      setForm((current) => ({
-        ...current,
-        phoneOtpVerified: true
-      }));
-      setOtpMeta((current) => ({
-        ...current,
-        retryAfterSeconds: 0
-      }));
-      setMessage(res.data.message || "Phone verified.");
-    } catch (error) {
-      setForm((current) => ({
-        ...current,
-        phoneOtpVerified: false
-      }));
-      setMessage(getApiErrorMessage(error, "Phone OTP verify nahi hua."));
-    } finally {
-      setOtpVerifying(false);
-    }
-  };
-
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setMessage("Browser location support available nahi hai. Map par pin drop karke location choose karo.");
+      setMessage("Your browser does not support location access. Drop a pin on the map to choose the shop location.");
       return;
     }
 
@@ -171,16 +85,16 @@ function Signup() {
       },
       (error) => {
         if (error?.code === 1) {
-          setMessage("Location permission deny ho gayi. Browser me location allow karo ya map par pin choose karo.");
+          setMessage("Location permission was denied. Allow location access in your browser or choose a pin on the map.");
           return;
         }
 
         if (error?.code === 2) {
-          setMessage("Current location detect nahi ho pa rahi. Map par manually pin choose karo.");
+          setMessage("Could not detect your current location. Choose a pin manually on the map.");
           return;
         }
 
-        setMessage("Current location fetch nahi ho pa rahi. HTTPS, browser permission, ya device GPS issue ho sakta hai. Map par pin choose karo.");
+        setMessage("Could not fetch your current location. Check HTTPS, browser permissions, or device GPS, then choose a pin on the map.");
       }
     );
   };
@@ -192,7 +106,7 @@ function Signup() {
       longitude: String(longitude)
     }));
     lastResolvedAddressRef.current = form.address.trim().toLowerCase();
-    setMessage("Map se shop location select ho gayi.");
+    setMessage("Shop location selected from the map.");
   };
 
   useEffect(() => {
@@ -243,7 +157,7 @@ function Signup() {
           latitude: String(match.lat),
           longitude: String(match.lon)
         }));
-        setMessage("Typed address se map location update ho gayi.");
+        setMessage("Map location updated from the typed address.");
       } catch (error) {
         if (error.name !== "AbortError") {
           console.error("Error resolving address:", error);
@@ -283,7 +197,7 @@ function Signup() {
       );
     } catch (error) {
       console.error("Error signing up:", error);
-      setMessage(getApiErrorMessage(error, "Signup complete nahi ho paaya. Dobara try karo."));
+      setMessage(getApiErrorMessage(error, "Signup could not be completed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -291,55 +205,13 @@ function Signup() {
 
   return (
     <main className="auth-page auth-page--simple">
-      <OpeningIntro
-        compact
-        showActions={false}
-        title="PressKardu account setup"
-        description="Choose your role and continue."
-        onReveal={() => setShowShell(true)}
-      />
-      <section className={`auth-shell auth-shell--simple${showShell ? " auth-shell--visible" : ""}`}>
-        <aside className="auth-panel auth-panel--intro">
-          <div className="auth-panel__veil" aria-hidden="true" />
-          <p className="auth-card__eyebrow">Welcome</p>
-          <h1>Book ironing or grow your press shop.</h1>
-          <p className="auth-panel__copy">
-            Signup takes a few details. Shopkeepers verify phone and location.
-          </p>
-
-          <div className="auth-panel__chips">
-            <span>Fast signup</span>
-            <span>Nearby shops</span>
-            <span>Order tracking</span>
-          </div>
-
-          <div className="auth-panel__metrics">
-            <article>
-              <strong>Customers</strong>
-              <span>Book and track orders.</span>
-            </article>
-            <article>
-              <strong>Shopkeepers</strong>
-              <span>Receive pickup requests.</span>
-            </article>
-          </div>
-
-          <div className="auth-panel__spotlight">
-            <strong>No confusion.</strong>
-            <span>Pick a role and continue.</span>
-          </div>
-
-          <div className="auth-panel__scene-card">
-            <LazyPressScene />
-          </div>
-        </aside>
-
+      <section className="auth-shell auth-shell--simple auth-shell--visible">
         <section className="auth-card auth-card--wide">
           <div className="auth-card__halo" aria-hidden="true" />
           <p className="auth-card__eyebrow">Create account</p>
           <h2>Create your account</h2>
           <p className="auth-card__copy">
-            Start as a customer or register your press shop.
+            Start as a customer or register your press shop with simple account details.
           </p>
           <Toast message={message} tone="warning" inline />
           {form.role === "presswala" && (
@@ -392,44 +264,6 @@ function Signup() {
               </label>
             </div>
 
-            <div className="auth-section">
-              <div className="auth-section__head">
-                <strong>Account verification</strong>
-                <span>Phone OTP verify karna zaroori hai.</span>
-              </div>
-
-              <div className="auth-form__split">
-                <label className="auth-field">
-                  <span className="auth-field__label">Phone OTP</span>
-                  <input className="auth-field__input" name="phoneOtp" placeholder="Enter phone OTP" onChange={handleChange} value={form.phoneOtp} required />
-                </label>
-                <div className="auth-location-card">
-                  <div className="auth-location-card__head">
-                    <strong>{form.phoneOtpVerified ? "Phone verified" : "Verify phone"}</strong>
-                    <span>{form.phoneOtpVerified ? "OTP verified." : "Confirm your phone."}</span>
-                  </div>
-                  {!form.phoneOtpVerified && otpMeta.retryAfterSeconds > 0 && (
-                    <p className="auth-card__message">
-                      Resend unlocks in {otpMeta.retryAfterSeconds}s.
-                    </p>
-                  )}
-                  {!form.phoneOtpVerified && otpMeta.provider && (
-                    <p className="auth-card__message">
-                      Current delivery route: {otpMeta.provider}.
-                    </p>
-                  )}
-                  <div className="auth-location-card__actions">
-                    <button className="auth-form__secondary" type="button" onClick={handleSendPhoneOtp} disabled={otpSending || otpMeta.retryAfterSeconds > 0}>
-                      {otpSending ? "Sending..." : "Send OTP"}
-                    </button>
-                    <button className="auth-form__secondary" type="button" onClick={handleVerifyPhoneOtp} disabled={otpVerifying}>
-                      {otpVerifying ? "Verifying..." : "Verify OTP"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {form.role === "presswala" && (
               <div className="auth-section">
                 <div className="auth-section__head">
@@ -458,7 +292,7 @@ function Signup() {
                     <strong>Shop location</strong>
                     <span>
                       {isResolvingAddress
-                        ? "Address se map location match ki ja rahi hai..."
+                        ? "Matching the typed address to a map location..."
                         : form.latitude && form.longitude
                         ? `Lat ${Number(form.latitude).toFixed(5)}, Lng ${Number(form.longitude).toFixed(5)}`
                         : "Use current location or pick on map"}
@@ -530,7 +364,7 @@ function Signup() {
               autoComplete="new-password"
             />
 
-            <button type="submit" disabled={loading || !form.phoneOtpVerified}>
+            <button type="submit" disabled={loading}>
               {loading ? "Creating account..." : "Signup"}
             </button>
           </form>

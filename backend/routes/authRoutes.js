@@ -39,7 +39,6 @@ router.post("/signup",
             return digits.length >= 10 && digits.length <= 15;
         })
         .withMessage("Phone must be between 10 and 15 digits"),
-    body("phoneOtpVerified").custom((value) => value === true || value === "true").withMessage("Phone OTP verification is required"),
     body("role").optional().isIn(["user", "presswala"]).withMessage("Invalid role"),
     validateRequest,
     signup);
