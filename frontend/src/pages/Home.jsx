@@ -506,40 +506,40 @@ function Home() {
             <div className="home-shops__visual-card">
               <div className="home-shops__visual-head">
                 <div>
-                  <p>Simple local service</p>
-                  <h2>Pickup. Press. Return.</h2>
+                  <p>Live pressing network</p>
+                  <h2>Pickup. Steam press. Return.</h2>
                 </div>
-                <span>Nearby</span>
+                <span>25 min pickup</span>
               </div>
-              <div className="home-shops__press-board" aria-label="PressKardu ironing service preview">
-                <div className="home-shops__steam" aria-hidden="true"><span /><span /><span /></div>
-                <div className="home-shops__hanger-line" aria-hidden="true">
+              <div className="home-shops__photo-stage" aria-label="PressKardu ironing pickup preview">
+                <img
+                  src="https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=1100&q=82"
+                  alt="Fresh laundry and professional pressing setup"
+                />
+                <div className="home-shops__order-ticket">
+                  <span>Order PKD-24</span>
+                  <strong>8 clothes picked</strong>
+                  <small>Delivery before 7:30 PM</small>
+                </div>
+                <div className="home-shops__fabric-stack" aria-hidden="true">
                   <span>Shirt</span>
+                  <span>Uniform</span>
                   <span>Saree</span>
-                  <span>Suit</span>
                 </div>
-                <div className="home-shops__press-shirt">
-                  <span className="home-shops__collar" />
-                  <span className="home-shops__crease home-shops__crease--one" />
-                  <span className="home-shops__crease home-shops__crease--two" />
-                  <span className="home-shops__sleeve home-shops__sleeve--left" />
-                  <span className="home-shops__sleeve home-shops__sleeve--right" />
+                <div className="home-shops__steam-badge">
+                  <strong>Steam finish</strong>
+                  <span>Folded and ready</span>
                 </div>
-                <div className="home-shops__iron-card">
-                  <span className="home-shops__iron-handle" />
-                  <strong>Fresh press</strong>
-                  <small>Quality checked</small>
-                </div>
-                <div className="home-shops__service-rail">
-                  <span>Pickup</span>
-                  <span>Steam press</span>
-                  <span>Return</span>
-                </div>
+              </div>
+              <div className="home-shops__service-rail home-shops__service-rail--photo">
+                <span>Pickup booked</span>
+                <span>Pressing</span>
+                <span>Out for return</span>
               </div>
               <div className="home-shops__visual-foot">
                 <div>
-                  <strong>Premium pressing</strong>
-                  <span>With map-first discovery and instant request flow</span>
+                  <strong>Premium local pressing</strong>
+                  <span>Real shop discovery, order status, and doorstep return</span>
                 </div>
                 <div className="home-shops__pulse">
                   <span />
