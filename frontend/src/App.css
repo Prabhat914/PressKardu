@@ -6449,3 +6449,399 @@ button,
     min-height: 340px;
   }
 }
+
+/* PressKardu identity polish: final visual layer for the laundry and ironing theme. */
+:root {
+  --press-ink: #16211f;
+  --press-muted: #66736f;
+  --press-line: #d8e4e0;
+  --press-paper: #ffffff;
+  --press-cloth: #f6fbf9;
+  --press-mint: #e8f4f0;
+  --press-teal: #08786f;
+  --press-teal-dark: #075b55;
+  --press-copper: #d7773b;
+  --press-cream: #fff7ed;
+}
+
+body,
+.home-shops {
+  color: var(--press-ink);
+  background:
+    linear-gradient(90deg, rgba(8, 120, 111, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #fbfdfc 0%, #eef7f4 46%, #fff8f0 100%);
+  background-size: 32px 32px, auto;
+}
+
+.site-nav__inner {
+  border-color: rgba(8, 120, 111, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 251, 249, 0.96));
+  box-shadow: 0 18px 42px rgba(20, 38, 34, 0.11);
+}
+
+.site-nav__brand-mark,
+.home-shops__hero-logo-wrap {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    var(--press-teal);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34), 0 12px 28px rgba(8, 120, 111, 0.24);
+}
+
+.home-shops__hero {
+  position: relative;
+  padding-top: clamp(46px, 7vw, 82px);
+}
+
+.home-shops__hero::before {
+  content: "";
+  position: absolute;
+  inset: 18px -24px auto auto;
+  width: min(440px, 36vw);
+  height: min(440px, 36vw);
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(8, 120, 111, 0.09) 0 1px, transparent 1px 16px),
+    radial-gradient(circle at 40% 38%, rgba(215, 119, 59, 0.14), transparent 52%);
+  clip-path: polygon(18% 0, 100% 0, 82% 100%, 0 86%);
+  opacity: 0.82;
+}
+
+.home-shops__hero-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.home-shops__hero-copy {
+  position: relative;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid rgba(8, 120, 111, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 251, 249, 0.86)),
+    repeating-linear-gradient(90deg, rgba(8, 120, 111, 0.04) 0 1px, transparent 1px 18px);
+  box-shadow: 0 22px 58px rgba(21, 39, 35, 0.11);
+}
+
+.home-shops__hero-copy::after {
+  content: "PRESSKARDU";
+  display: block;
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 7px 10px;
+  border: 1px dashed rgba(8, 120, 111, 0.38);
+  border-radius: 4px;
+  color: rgba(8, 120, 111, 0.72);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.home-shops__hero h1 {
+  max-width: 12.5ch;
+  color: var(--press-ink);
+  text-wrap: balance;
+}
+
+.home-shops__copy {
+  color: #52625d;
+}
+
+.home-shops__fabric-label {
+  display: inline-grid;
+  gap: 3px;
+  margin: 20px 0 4px;
+  padding: 10px 14px;
+  border: 1px dashed rgba(8, 120, 111, 0.34);
+  border-left: 4px solid var(--press-copper);
+  border-radius: 6px;
+  background: var(--press-cream);
+}
+
+.home-shops__fabric-label span {
+  color: var(--press-copper);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-shops__fabric-label strong {
+  color: var(--press-ink);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.home-shops__signals {
+  margin-top: 18px;
+}
+
+.home-shops__signals span {
+  border-color: rgba(8, 120, 111, 0.18);
+  background: #ffffff;
+  color: #40514c;
+}
+
+.home-shops__link,
+.site-nav__button,
+.auth-form button,
+.press-card__action,
+.home-shops__scope-button {
+  border-color: var(--press-teal-dark);
+  background:
+    linear-gradient(180deg, var(--press-teal), var(--press-teal-dark));
+  box-shadow: 0 12px 24px rgba(8, 120, 111, 0.2);
+}
+
+.home-shops__link--secondary,
+.site-nav__button--ghost,
+.auth-form__secondary,
+.press-card__action--secondary,
+.home-shops__scope-button--secondary {
+  border-color: rgba(8, 120, 111, 0.18) !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(20, 38, 34, 0.07);
+}
+
+.home-shops__visual-card {
+  position: relative;
+  padding: clamp(18px, 2vw, 24px);
+  border: 1px solid rgba(8, 120, 111, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, #ffffff, #f6fbf9);
+  box-shadow: 0 24px 60px rgba(20, 38, 34, 0.14);
+}
+
+.home-shops__visual-head,
+.home-shops__visual-foot {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.home-shops__visual-head > span,
+.home-shops__pulse {
+  border: 1px solid rgba(8, 120, 111, 0.18);
+  background: var(--press-mint);
+  color: var(--press-teal-dark);
+}
+
+.home-shops__press-board {
+  overflow: hidden;
+  min-height: 470px;
+  border: 1px solid #064f4a;
+  border-radius: 8px;
+  background-color: #08786f;
+  background-image:
+    radial-gradient(circle at 26% 28%, rgba(255, 255, 255, 0.16), transparent 21%),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 22px),
+    linear-gradient(180deg, #0a8b80 0%, #075f58 100%);
+  box-shadow: inset 0 -18px 44px rgba(2, 37, 34, 0.24);
+}
+
+.home-shops__press-board::before {
+  content: "IRONING TABLE";
+  top: 18px;
+  left: 18px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.home-shops__hanger-line {
+  position: absolute;
+  top: 66px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 13px;
+  border-top: 2px solid rgba(255, 255, 255, 0.36);
+}
+
+.home-shops__hanger-line span {
+  position: relative;
+  min-width: 58px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--press-teal-dark);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.home-shops__hanger-line span::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.home-shops__press-shirt {
+  top: 48%;
+  width: min(270px, 56%);
+  background:
+    linear-gradient(90deg, rgba(8, 120, 111, 0.08) 0 1px, transparent 1px 50%),
+    linear-gradient(180deg, #ffffff 0%, #edf8f5 100%);
+  background-size: 22px 100%, auto;
+  box-shadow:
+    0 28px 52px rgba(2, 45, 42, 0.32),
+    inset 0 0 0 1px rgba(8, 120, 111, 0.12);
+}
+
+.home-shops__collar {
+  border-color: transparent transparent #d8eee8 transparent;
+}
+
+.home-shops__iron-card {
+  right: 24px;
+  bottom: 94px;
+  border-color: rgba(215, 119, 59, 0.3);
+  background: linear-gradient(180deg, #fffaf4, #fff1e3);
+}
+
+.home-shops__iron-handle {
+  border-color: var(--press-copper);
+}
+
+.home-shops__service-rail {
+  bottom: 24px;
+}
+
+.home-shops__service-rail span {
+  min-height: 46px;
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.13);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+}
+
+.home-shops__steam {
+  top: 120px;
+  right: 54px;
+  opacity: 0.62;
+}
+
+.home-shops__steam span {
+  width: 4px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.86), transparent);
+}
+
+.featured-spotlight,
+.service-flow,
+.pricing-showcase,
+.trust-gallery,
+.home-shops__section,
+.press-card {
+  border: 1px solid rgba(8, 120, 111, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 250, 0.96));
+  box-shadow: 0 18px 46px rgba(20, 38, 34, 0.08);
+}
+
+.service-flow__card,
+.pricing-showcase__card {
+  border: 1px solid rgba(8, 120, 111, 0.14);
+  background:
+    linear-gradient(180deg, #ffffff, #f7fbfa);
+}
+
+.service-flow__step {
+  color: var(--press-copper);
+}
+
+.service-flow__icon {
+  border-color: rgba(8, 120, 111, 0.14);
+  background: var(--press-mint);
+  color: var(--press-teal-dark);
+}
+
+.pricing-showcase {
+  background:
+    linear-gradient(90deg, rgba(8, 120, 111, 0.94), rgba(7, 91, 85, 0.94)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 18px);
+  color: #ffffff;
+}
+
+.pricing-showcase .dashboard-eyebrow,
+.pricing-showcase__copy p,
+.pricing-showcase__copy h2 {
+  color: #ffffff;
+}
+
+.pricing-showcase__card {
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--press-ink);
+}
+
+.trust-gallery__card {
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.trust-gallery__card img {
+  filter: saturate(0.92) contrast(1.02);
+}
+
+.trust-gallery__overlay {
+  background: linear-gradient(180deg, transparent, rgba(15, 31, 28, 0.86));
+}
+
+@media (max-width: 900px) {
+  .home-shops__hero-copy::after {
+    position: static;
+    width: max-content;
+    margin-top: 18px;
+  }
+
+  .home-shops__hero::before {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-shops__hero-copy {
+    padding: 18px;
+  }
+
+  .home-shops__press-board {
+    min-height: 390px;
+  }
+
+  .home-shops__hanger-line {
+    top: 58px;
+    gap: 6px;
+  }
+
+  .home-shops__hanger-line span {
+    min-width: 0;
+    flex: 1;
+    padding: 7px 4px;
+  }
+
+  .home-shops__press-shirt {
+    width: 64%;
+  }
+
+  .home-shops__steam {
+    top: 116px;
+    right: 26px;
+  }
+
+  .home-shops__iron-card {
+    right: 12px;
+    bottom: 88px;
+  }
+}

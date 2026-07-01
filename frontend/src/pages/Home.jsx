@@ -454,6 +454,11 @@ function Home() {
               every order until it returns ready to wear.
             </p>
 
+            <div className="home-shops__fabric-label" aria-label="PressKardu service promise">
+              <span>Pressed today</span>
+              <strong>Shirts, sarees, suits, uniforms</strong>
+            </div>
+
             <div className="home-shops__signals">
               <span>Doorstep pickup</span>
               <span>Fast local turnaround</span>
@@ -508,6 +513,11 @@ function Home() {
               </div>
               <div className="home-shops__press-board" aria-label="PressKardu ironing service preview">
                 <div className="home-shops__steam" aria-hidden="true"><span /><span /><span /></div>
+                <div className="home-shops__hanger-line" aria-hidden="true">
+                  <span>Shirt</span>
+                  <span>Saree</span>
+                  <span>Suit</span>
+                </div>
                 <div className="home-shops__press-shirt">
                   <span className="home-shops__collar" />
                   <span className="home-shops__crease home-shops__crease--one" />
