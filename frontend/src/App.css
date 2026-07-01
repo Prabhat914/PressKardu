@@ -7438,3 +7438,46 @@ body,
     font-size: 2.35rem;
   }
 }
+
+.auth-field textarea.auth-field__input {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+  padding-top: 14px;
+}
+
+.auth-option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.auth-check-pill {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(8, 120, 111, 0.16);
+  border-radius: 8px;
+  background: #f7fbfa;
+  color: #40514c;
+  cursor: pointer;
+}
+
+.auth-check-pill input {
+  width: 16px;
+  height: 16px;
+  accent-color: #08786f;
+}
+
+.auth-check-pill span {
+  font-size: 0.92rem;
+  font-weight: 400;
+}
+
+.auth-check-pill:has(input:checked) {
+  border-color: #08786f;
+  background: #eaf7f3;
+  color: #075b55;
+}

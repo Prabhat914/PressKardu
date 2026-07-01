@@ -8,6 +8,18 @@ import { getFavoriteShopIds, getStoredUser, saveSession } from "../utils/session
 import { startHostedPayment } from "../utils/payment";
 import Toast from "../components/Toast";
 
+const SHOP_SERVICE_OPTIONS = [
+  "Dry Iron",
+  "Steam Iron",
+  "Wash & Iron",
+  "Dry Cleaning",
+  "Blanket Cleaning",
+  "Saree Press",
+  "Curtain Cleaning"
+];
+
+const SHOP_PAYMENT_OPTIONS = ["Cash", "UPI", "Card", "Wallet"];
+
 function Dashboard() {
   const initialUser = getStoredUser();
   const [currentUser, setCurrentUser] = useState(initialUser);
@@ -33,10 +45,29 @@ function Dashboard() {
     pickupWindow: "",
     about: "",
     pricePerCloth: "",
+    minimumOrderValue: "",
     serviceRadiusKm: "",
     latitude: "",
     longitude: "",
     services: "",
+    pincode: "",
+    landmark: "",
+    googleMapsUrl: "",
+    openingTime: "",
+    closingTime: "",
+    weeklyOff: "Sunday",
+    scheduleText: "",
+    currentStatus: "open",
+    priceList: "Shirt:10\nPant:15\nT-Shirt:10\nSaree:40\nBlazer:80\nBedsheet:30",
+    pickupAvailable: "true",
+    homeDelivery: "true",
+    pickupCharges: "",
+    deliveryCharges: "",
+    freeDeliveryAbove: "500",
+    dailyOrderLimit: "60",
+    paymentMethods: "Cash, UPI",
+    employees: "",
+    deliveryPartners: "",
     verificationStatus: "",
     verificationNotes: "",
     fraudSignals: "",
@@ -65,10 +96,31 @@ function Dashboard() {
       pickupWindow: profile.pressShop?.pickupWindow || "",
       about: profile.pressShop?.about || "",
       pricePerCloth: profile.pressShop?.pricePerCloth ?? "",
+      minimumOrderValue: profile.pressShop?.minimumOrderValue ?? "",
       serviceRadiusKm: profile.pressShop?.serviceRadiusKm ?? "",
       latitude: profile.pressShop?.location?.coordinates?.[1] ?? "",
       longitude: profile.pressShop?.location?.coordinates?.[0] ?? "",
       services: Array.isArray(profile.pressShop?.services) ? profile.pressShop.services.join(", ") : "",
+      pincode: profile.pressShop?.pincode || "",
+      landmark: profile.pressShop?.landmark || "",
+      googleMapsUrl: profile.pressShop?.googleMapsUrl || "",
+      openingTime: profile.pressShop?.businessHours?.openingTime || "",
+      closingTime: profile.pressShop?.businessHours?.closingTime || "",
+      weeklyOff: profile.pressShop?.businessHours?.weeklyOff || "Sunday",
+      scheduleText: profile.pressShop?.businessHours?.scheduleText || "",
+      currentStatus: profile.pressShop?.businessHours?.currentStatus || "open",
+      priceList: Array.isArray(profile.pressShop?.priceList) && profile.pressShop.priceList.length > 0
+        ? profile.pressShop.priceList.map((item) => `${item.cloth}:${item.price}`).join("\n")
+        : "Shirt:10\nPant:15\nT-Shirt:10\nSaree:40\nBlazer:80\nBedsheet:30",
+      pickupAvailable: String(profile.pressShop?.pickupDelivery?.pickupAvailable ?? true),
+      homeDelivery: String(profile.pressShop?.pickupDelivery?.homeDelivery ?? true),
+      pickupCharges: profile.pressShop?.pickupDelivery?.pickupCharges ?? "",
+      deliveryCharges: profile.pressShop?.pickupDelivery?.deliveryCharges ?? "",
+      freeDeliveryAbove: profile.pressShop?.pickupDelivery?.freeDeliveryAbove ?? 500,
+      dailyOrderLimit: profile.pressShop?.capacity?.dailyOrderLimit ?? 60,
+      paymentMethods: Array.isArray(profile.pressShop?.paymentMethods) ? profile.pressShop.paymentMethods.join(", ") : "Cash, UPI",
+      employees: profile.pressShop?.staffDetails?.employees ?? "",
+      deliveryPartners: profile.pressShop?.staffDetails?.deliveryPartners ?? "",
       verificationStatus: profile.pressShop?.verificationStatus || "",
       verificationNotes: profile.pressShop?.verificationNotes || "",
       fraudSignals: Array.isArray(profile.pressShop?.fraudSignals) ? profile.pressShop.fraudSignals.join(" | ") : "",
@@ -151,6 +203,20 @@ function Dashboard() {
     }));
   };
 
+  const toggleCommaValue = (fieldName, option) => {
+    setProfileForm((current) => {
+      const values = current[fieldName].split(",").map((item) => item.trim()).filter(Boolean);
+      const nextValues = values.includes(option)
+        ? values.filter((item) => item !== option)
+        : [...values, option];
+
+      return {
+        ...current,
+        [fieldName]: nextValues.join(", ")
+      };
+    });
+  };
+
   const handleSendPhoneOtp = async () => {
     if (!profileForm.phone.trim()) {
       setProfileMessage("Enter a phone number before sending an OTP.");
@@ -228,10 +294,37 @@ function Dashboard() {
           pickupWindow: profileForm.pickupWindow,
           about: profileForm.about,
           pricePerCloth: profileForm.pricePerCloth === "" ? undefined : Number(profileForm.pricePerCloth),
+          minimumOrderValue: profileForm.minimumOrderValue === "" ? undefined : Number(profileForm.minimumOrderValue),
           serviceRadiusKm: profileForm.serviceRadiusKm === "" ? undefined : Number(profileForm.serviceRadiusKm),
           latitude: profileForm.latitude === "" ? undefined : Number(profileForm.latitude),
           longitude: profileForm.longitude === "" ? undefined : Number(profileForm.longitude),
           services: profileForm.services.split(",").map((item) => item.trim()).filter(Boolean),
+          pincode: profileForm.pincode,
+          landmark: profileForm.landmark,
+          googleMapsUrl: profileForm.googleMapsUrl,
+          businessHours: {
+            openingTime: profileForm.openingTime,
+            closingTime: profileForm.closingTime,
+            weeklyOff: profileForm.weeklyOff,
+            scheduleText: profileForm.scheduleText,
+            currentStatus: profileForm.currentStatus
+          },
+          priceList: profileForm.priceList,
+          pickupDelivery: {
+            pickupAvailable: profileForm.pickupAvailable,
+            homeDelivery: profileForm.homeDelivery,
+            pickupCharges: profileForm.pickupCharges === "" ? undefined : Number(profileForm.pickupCharges),
+            deliveryCharges: profileForm.deliveryCharges === "" ? undefined : Number(profileForm.deliveryCharges),
+            freeDeliveryAbove: profileForm.freeDeliveryAbove === "" ? undefined : Number(profileForm.freeDeliveryAbove)
+          },
+          capacity: {
+            dailyOrderLimit: profileForm.dailyOrderLimit === "" ? undefined : Number(profileForm.dailyOrderLimit)
+          },
+          paymentMethods: profileForm.paymentMethods,
+          staffDetails: {
+            employees: profileForm.employees === "" ? undefined : Number(profileForm.employees),
+            deliveryPartners: profileForm.deliveryPartners === "" ? undefined : Number(profileForm.deliveryPartners)
+          },
           payoutDetails: {
             accountHolderName: profileForm.payoutAccountHolderName,
             upiId: profileForm.payoutUpiId,
@@ -289,6 +382,27 @@ function Dashboard() {
     : profileForm.payoutAccountNumber && profileForm.payoutIfscCode
     ? `${profileForm.payoutBankName || "Bank"} ending ${profileForm.payoutAccountNumber.slice(-4)} (${profileForm.payoutIfscCode})`
     : "";
+  const todayKey = new Date().toDateString();
+  const todayOrders = orders.filter((order) => order?.createdAt && new Date(order.createdAt).toDateString() === todayKey);
+  const pendingOrders = orders.filter((order) => order.status === "pending");
+  const processingOrders = orders.filter((order) => ["accepted", "picked_up"].includes(order.status));
+  const readyForDeliveryOrders = orders.filter((order) => order.status === "pressed");
+  const todayCapacityLimit = Number(profileForm.dailyOrderLimit || 0);
+  const monthlyRevenue = orders
+    .filter((order) => order?.createdAt && new Date(order.createdAt) >= currentMonthStart)
+    .reduce((sum, order) => sum + Number(order.totalPrice || 0), 0);
+  const topCustomers = Object.values(
+    orders.reduce((acc, order) => {
+      const customerId = order.user?._id || order.user?.email || order.user?.name || "guest";
+      const name = order.user?.name || order.user?.email || "Customer";
+      acc[customerId] = acc[customerId] || { name, orders: 0, value: 0 };
+      acc[customerId].orders += 1;
+      acc[customerId].value += Number(order.totalPrice || 0);
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b.value - a.value || b.orders - a.orders)
+    .slice(0, 3);
 
   const handleSubscriptionChange = async (planId, paymentMode) => {
     try {
@@ -391,6 +505,53 @@ function Dashboard() {
           </article>
         )}
       </section>
+
+      {currentUser?.role === "presswala" && (
+        <section className="dashboard-grid dashboard-grid--stats">
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Today's orders</span>
+            <strong>{todayOrders.length}</strong>
+            <p>New and active orders received today.</p>
+          </article>
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Pending</span>
+            <strong>{pendingOrders.length}</strong>
+            <p>Orders waiting for shop acceptance.</p>
+          </article>
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Processing</span>
+            <strong>{processingOrders.length}</strong>
+            <p>Accepted or picked up orders currently being handled.</p>
+          </article>
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Ready for delivery</span>
+            <strong>{readyForDeliveryOrders.length}</strong>
+            <p>Pressed orders ready for return delivery.</p>
+          </article>
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Today's capacity</span>
+            <strong>{todayOrders.length}/{todayCapacityLimit || 0}</strong>
+            <p>Daily handling limit configured by the shopkeeper.</p>
+          </article>
+          <article className="dashboard-card">
+            <span className="dashboard-card__label">Monthly revenue</span>
+            <strong>Rs. {monthlyRevenue}</strong>
+            <p>Revenue from orders created this month.</p>
+          </article>
+          <article className="dashboard-card dashboard-card--wide">
+            <span className="dashboard-card__label">Top customers</span>
+            <div className="offer-stack">
+              {topCustomers.map((customer) => (
+                <div key={customer.name} className="offer-card">
+                  <strong>{customer.name}</strong>
+                  <span>{customer.orders} orders | Rs. {customer.value}</span>
+                </div>
+              ))}
+              {topCustomers.length === 0 && <p className="dashboard-empty">Top customers will appear after orders start coming in.</p>}
+            </div>
+          </article>
+        </section>
+      )}
 
       <section className="dashboard-grid">
         <article className="dashboard-card dashboard-card--wide">
@@ -569,6 +730,17 @@ function Dashboard() {
                   </label>
                 </div>
 
+                <div className="auth-form__split">
+                  <label className="auth-field">
+                    <span className="auth-field__label">Pincode</span>
+                    <input className="auth-field__input" name="pincode" value={profileForm.pincode} onChange={handleProfileChange} />
+                  </label>
+                  <label className="auth-field">
+                    <span className="auth-field__label">Landmark</span>
+                    <input className="auth-field__input" name="landmark" value={profileForm.landmark} onChange={handleProfileChange} placeholder="Near metro, school, market..." />
+                  </label>
+                </div>
+
                 <p className="auth-card__message">
                   Public status: <strong>{profileForm.verificationStatus || "pending"}</strong>
                   {profileForm.verificationNotes ? ` | ${profileForm.verificationNotes}` : ""}
@@ -627,6 +799,11 @@ function Dashboard() {
                   </label>
                 </div>
 
+                <label className="auth-field">
+                  <span className="auth-field__label">Google Maps location URL</span>
+                  <input className="auth-field__input" name="googleMapsUrl" value={profileForm.googleMapsUrl} onChange={handleProfileChange} placeholder="Paste Google Maps share link" />
+                </label>
+
                 <p className="auth-card__message">
                   Changing phone, address, or map coordinates will not automatically move the shop back to pending. Admins can still review manually.
                 </p>
@@ -642,18 +819,157 @@ function Dashboard() {
                   </label>
                 </div>
 
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Business hours</strong>
+                    <span>Customers see these timings before placing an order.</span>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Opening time</span>
+                      <input className="auth-field__input" name="openingTime" value={profileForm.openingTime} onChange={handleProfileChange} placeholder="9:00 AM" />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Closing time</span>
+                      <input className="auth-field__input" name="closingTime" value={profileForm.closingTime} onChange={handleProfileChange} placeholder="9:00 PM" />
+                    </label>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Weekly off</span>
+                      <input className="auth-field__input" name="weeklyOff" value={profileForm.weeklyOff} onChange={handleProfileChange} placeholder="Sunday" />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Current status</span>
+                      <select className="auth-field__input" name="currentStatus" value={profileForm.currentStatus} onChange={handleProfileChange}>
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="auth-field">
+                    <span className="auth-field__label">Schedule note</span>
+                    <textarea className="auth-field__input" name="scheduleText" value={profileForm.scheduleText} onChange={handleProfileChange} placeholder={"Monday - Saturday\n9:00 AM - 9:00 PM\nSunday Closed"} />
+                  </label>
+                </div>
+
                 <label className="auth-field">
                   <span className="auth-field__label">Pickup window</span>
                   <input className="auth-field__input" name="pickupWindow" value={profileForm.pickupWindow} onChange={handleProfileChange} />
                 </label>
-                <label className="auth-field">
-                  <span className="auth-field__label">Services</span>
-                  <input className="auth-field__input" name="services" value={profileForm.services} onChange={handleProfileChange} placeholder="Steam press, Dry clean, Wash and iron" />
-                </label>
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Services offered</strong>
+                    <span>Select everything your shop can handle.</span>
+                  </div>
+                  <div className="auth-option-grid">
+                    {SHOP_SERVICE_OPTIONS.map((service) => (
+                      <label key={service} className="auth-check-pill">
+                        <input
+                          type="checkbox"
+                          checked={profileForm.services.split(",").map((item) => item.trim()).includes(service)}
+                          onChange={() => toggleCommaValue("services", service)}
+                        />
+                        <span>{service}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <label className="auth-field">
+                    <span className="auth-field__label">Other services</span>
+                    <input className="auth-field__input" name="services" value={profileForm.services} onChange={handleProfileChange} placeholder="Steam Iron, Dry Cleaning, Saree Press" />
+                  </label>
+                </div>
                 <label className="auth-field">
                   <span className="auth-field__label">About</span>
                   <input className="auth-field__input" name="about" value={profileForm.about} onChange={handleProfileChange} />
                 </label>
+
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Price list</strong>
+                    <span>One item per line, example Shirt:10. Customers can estimate before ordering.</span>
+                  </div>
+                  <label className="auth-field">
+                    <span className="auth-field__label">Cloth prices</span>
+                    <textarea className="auth-field__input" name="priceList" value={profileForm.priceList} onChange={handleProfileChange} />
+                  </label>
+                </div>
+
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Pickup and delivery</strong>
+                    <span>Set minimum order and delivery rules shown to customers.</span>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Pickup available</span>
+                      <select className="auth-field__input" name="pickupAvailable" value={profileForm.pickupAvailable} onChange={handleProfileChange}>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </select>
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Home delivery</span>
+                      <select className="auth-field__input" name="homeDelivery" value={profileForm.homeDelivery} onChange={handleProfileChange}>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Minimum order amount</span>
+                      <input className="auth-field__input" name="minimumOrderValue" type="number" min="0" value={profileForm.minimumOrderValue} onChange={handleProfileChange} />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Free delivery above</span>
+                      <input className="auth-field__input" name="freeDeliveryAbove" type="number" min="0" value={profileForm.freeDeliveryAbove} onChange={handleProfileChange} />
+                    </label>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Pickup charges</span>
+                      <input className="auth-field__input" name="pickupCharges" type="number" min="0" value={profileForm.pickupCharges} onChange={handleProfileChange} />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Delivery charges</span>
+                      <input className="auth-field__input" name="deliveryCharges" type="number" min="0" value={profileForm.deliveryCharges} onChange={handleProfileChange} />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="auth-section">
+                  <div className="auth-section__head">
+                    <strong>Capacity, payments and staff</strong>
+                    <span>These details make the shop profile feel complete.</span>
+                  </div>
+                  <div className="auth-form__split">
+                    <label className="auth-field">
+                      <span className="auth-field__label">Today's capacity</span>
+                      <input className="auth-field__input" name="dailyOrderLimit" type="number" min="0" value={profileForm.dailyOrderLimit} onChange={handleProfileChange} />
+                    </label>
+                    <label className="auth-field">
+                      <span className="auth-field__label">Employees</span>
+                      <input className="auth-field__input" name="employees" type="number" min="0" value={profileForm.employees} onChange={handleProfileChange} />
+                    </label>
+                  </div>
+                  <label className="auth-field">
+                    <span className="auth-field__label">Delivery partners</span>
+                    <input className="auth-field__input" name="deliveryPartners" type="number" min="0" value={profileForm.deliveryPartners} onChange={handleProfileChange} />
+                  </label>
+                  <div className="auth-option-grid">
+                    {SHOP_PAYMENT_OPTIONS.map((method) => (
+                      <label key={method} className="auth-check-pill">
+                        <input
+                          type="checkbox"
+                          checked={profileForm.paymentMethods.split(",").map((item) => item.trim()).includes(method)}
+                          onChange={() => toggleCommaValue("paymentMethods", method)}
+                        />
+                        <span>{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 <div className="auth-section">
                   <div className="auth-section__head">

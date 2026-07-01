@@ -38,6 +38,10 @@ function PressCard({
   const distance = typeof shop.distanceKm === "number" ? `${shop.distanceKm.toFixed(1)} km away` : "Nearby";
   const services = Array.isArray(shop.services) && shop.services.length > 0 ? shop.services.slice(0, 3) : [];
   const reviewCount = Array.isArray(shop.reviews) ? shop.reviews.length : 0;
+  const priceList = Array.isArray(shop.priceList) ? shop.priceList.slice(0, 3) : [];
+  const paymentMethods = Array.isArray(shop.paymentMethods) ? shop.paymentMethods.slice(0, 3) : [];
+  const currentStatus = shop.businessHours?.currentStatus === "closed" ? "Closed now" : "Open now";
+  const capacityLimit = Number(shop.capacity?.dailyOrderLimit || 0);
   const bannerTone = shop.isFeatured ? "press-card__banner--featured" : "press-card__banner--standard";
   const logoSource = shop.logo || shop.logoUrl || "";
   const shopInitials = getShopInitials(shop.shopName);
@@ -90,6 +94,7 @@ function PressCard({
         <span>{rating === "New" ? "Fresh on PressKardu" : `${rating} rating`}</span>
         <span>{shop.pricePerCloth ? "Transparent pricing" : "Quick quote"}</span>
         <span>{reviewCount > 0 ? `${reviewCount} reviews` : "New reviews coming in"}</span>
+        <span>{currentStatus}</span>
         {onlinePreferred && <span>{onlineConversionScore}% online acceptance</span>}
       </div>
 
@@ -116,7 +121,31 @@ function PressCard({
           <span className="press-card__label">Contact</span>
           <p>{phone}</p>
         </div>
+        <div>
+          <span className="press-card__label">Capacity</span>
+          <p>{capacityLimit ? `${capacityLimit} orders/day` : "Capacity on request"}</p>
+        </div>
+        <div>
+          <span className="press-card__label">Delivery</span>
+          <p>{shop.pickupDelivery?.homeDelivery === false ? "Pickup only" : "Home delivery"}</p>
+        </div>
       </div>
+
+      {priceList.length > 0 && (
+        <div className="press-card__chips">
+          {priceList.map((item) => (
+            <span key={`${item.cloth}-${item.price}`} className="press-card__chip">
+              {item.cloth} Rs. {item.price}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {paymentMethods.length > 0 && (
+        <div className="auth-card__message">
+          Payments: {paymentMethods.join(", ")}
+        </div>
+      )}
 
       {services.length > 0 && (
         <div className="press-card__chips">

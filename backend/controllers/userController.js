@@ -60,6 +60,45 @@ function parseOptionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : NaN;
 }
 
+function parseOptionalBoolean(value, defaultValue = false) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  return ["true", "yes", "1", "on"].includes(String(value).trim().toLowerCase());
+}
+
+function parsePriceList(value) {
+  const incoming = Array.isArray(value)
+    ? value
+    : String(value || "")
+        .split(/\n|,/)
+        .map((line) => {
+          const [cloth, price] = line.split(/:|-/);
+          return { cloth, price };
+        });
+
+  return incoming
+    .map((item) => ({
+      cloth: String(item.cloth || item.item || "").trim(),
+      price: Number(item.price)
+    }))
+    .filter((item) => item.cloth && Number.isFinite(item.price) && item.price >= 0);
+}
+
+function parseStringList(value) {
+  return Array.isArray(value)
+    ? value.map((item) => String(item).trim()).filter(Boolean)
+    : String(value || "")
+        .split(/\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
 function sanitizePayoutDetails(payload = {}) {
   return {
     accountHolderName: String(payload.accountHolderName || "").trim(),
@@ -197,6 +236,7 @@ exports.updateProfile = async (req, res) => {
       }
 
       pressShop.ownerName = user.name;
+      pressShop.email = user.email;
       if (!phoneChanged) {
         pressShop.phone = user.phone;
       }
@@ -217,6 +257,67 @@ exports.updateProfile = async (req, res) => {
         pressShop.about = req.body.about?.trim() || "";
       }
 
+      if (req.body.pincode !== undefined) {
+        pressShop.pincode = String(req.body.pincode || "").trim();
+      }
+
+      if (req.body.landmark !== undefined) {
+        pressShop.landmark = String(req.body.landmark || "").trim();
+      }
+
+      if (req.body.googleMapsUrl !== undefined) {
+        pressShop.googleMapsUrl = String(req.body.googleMapsUrl || "").trim();
+      }
+
+      if (req.body.businessHours !== undefined) {
+        const hours = req.body.businessHours || {};
+        pressShop.businessHours = {
+          openingTime: String(hours.openingTime || "").trim(),
+          closingTime: String(hours.closingTime || "").trim(),
+          weeklyOff: String(hours.weeklyOff || "Sunday").trim(),
+          scheduleText: String(hours.scheduleText || "").trim(),
+          currentStatus: ["open", "closed"].includes(String(hours.currentStatus || "").toLowerCase())
+            ? String(hours.currentStatus).toLowerCase()
+            : "open"
+        };
+      }
+
+      if (req.body.pickupDelivery !== undefined) {
+        const pickupDelivery = req.body.pickupDelivery || {};
+        const pickupCharges = parseOptionalNumber(pickupDelivery.pickupCharges);
+        const deliveryCharges = parseOptionalNumber(pickupDelivery.deliveryCharges);
+        const freeDeliveryAbove = parseOptionalNumber(pickupDelivery.freeDeliveryAbove);
+        pressShop.pickupDelivery = {
+          pickupAvailable: parseOptionalBoolean(pickupDelivery.pickupAvailable, true),
+          homeDelivery: parseOptionalBoolean(pickupDelivery.homeDelivery, true),
+          pickupCharges: Number.isNaN(pickupCharges) ? 0 : pickupCharges || 0,
+          deliveryCharges: Number.isNaN(deliveryCharges) ? 0 : deliveryCharges || 0,
+          freeDeliveryAbove: Number.isNaN(freeDeliveryAbove) ? 500 : freeDeliveryAbove || 0
+        };
+      }
+
+      if (req.body.capacity !== undefined) {
+        const dailyOrderLimit = parseOptionalNumber(req.body.capacity?.dailyOrderLimit);
+        if (Number.isNaN(dailyOrderLimit) || dailyOrderLimit < 0) {
+          return res.status(400).json({ message: "Daily order capacity must be a valid non-negative number" });
+        }
+        pressShop.capacity = {
+          dailyOrderLimit: dailyOrderLimit || 0
+        };
+      }
+
+      if (req.body.staffDetails !== undefined) {
+        const employees = parseOptionalNumber(req.body.staffDetails?.employees);
+        const deliveryPartners = parseOptionalNumber(req.body.staffDetails?.deliveryPartners);
+        if (Number.isNaN(employees) || Number.isNaN(deliveryPartners) || employees < 0 || deliveryPartners < 0) {
+          return res.status(400).json({ message: "Staff counts must be valid non-negative numbers" });
+        }
+        pressShop.staffDetails = {
+          employees: employees || 0,
+          deliveryPartners: deliveryPartners || 0
+        };
+      }
+
       if (req.body.shopPhotoDataUrl !== undefined) {
         if (req.body.shopPhotoDataUrl && !isValidShopPhotoDataUrl(req.body.shopPhotoDataUrl)) {
           return res.status(400).json({ message: "Shop photo must be a valid image" });
@@ -227,8 +328,32 @@ exports.updateProfile = async (req, res) => {
         requiresReverification = true;
       }
 
+      if (req.body.shopLogoDataUrl !== undefined) {
+        if (req.body.shopLogoDataUrl && !isValidShopPhotoDataUrl(req.body.shopLogoDataUrl)) {
+          return res.status(400).json({ message: "Shop logo must be a valid image" });
+        }
+
+        pressShop.shopLogoDataUrl = req.body.shopLogoDataUrl || "";
+      }
+
+      if (req.body.shopPhotosDataUrls !== undefined) {
+        const photos = Array.isArray(req.body.shopPhotosDataUrls) ? req.body.shopPhotosDataUrls : [];
+        if (photos.some((photo) => photo && !isValidShopPhotoDataUrl(photo))) {
+          return res.status(400).json({ message: "Shop photos must be valid images" });
+        }
+        pressShop.shopPhotosDataUrls = photos.filter(Boolean).slice(0, 5);
+      }
+
       if (Array.isArray(req.body.services)) {
         pressShop.services = req.body.services.map((item) => String(item).trim()).filter(Boolean);
+      }
+
+      if (req.body.paymentMethods !== undefined) {
+        pressShop.paymentMethods = parseStringList(req.body.paymentMethods);
+      }
+
+      if (req.body.priceList !== undefined) {
+        pressShop.priceList = parsePriceList(req.body.priceList);
       }
 
       if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
@@ -252,6 +377,14 @@ exports.updateProfile = async (req, res) => {
           return res.status(400).json({ message: "Price per cloth must be a valid non-negative number" });
         }
         pressShop.pricePerCloth = nextPricePerCloth;
+      }
+
+      if (req.body.minimumOrderValue !== undefined) {
+        const nextMinimumOrderValue = parseOptionalNumber(req.body.minimumOrderValue);
+        if (Number.isNaN(nextMinimumOrderValue) || nextMinimumOrderValue < 0) {
+          return res.status(400).json({ message: "Minimum order amount must be a valid non-negative number" });
+        }
+        pressShop.minimumOrderValue = nextMinimumOrderValue || 0;
       }
 
       if (req.body.serviceRadiusKm !== undefined) {

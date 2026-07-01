@@ -60,6 +60,19 @@ function ShopDetails() {
         { authorName: "Sneha", rating: 4, comment: "Good communication, neat fold, and clear pricing." },
         { authorName: "Ritika", rating: 5, comment: "Best option for wedding wear and urgent next-day finish." }
       ];
+  const priceList = Array.isArray(shop.priceList) && shop.priceList.length > 0
+    ? shop.priceList
+    : [
+        { cloth: "Shirt", price: 10 },
+        { cloth: "Pant", price: 15 },
+        { cloth: "T-Shirt", price: 10 },
+        { cloth: "Saree", price: 40 },
+        { cloth: "Blazer", price: 80 },
+        { cloth: "Bedsheet", price: 30 }
+      ];
+  const businessHours = shop.businessHours || {};
+  const pickupDelivery = shop.pickupDelivery || {};
+  const paymentMethods = Array.isArray(shop.paymentMethods) && shop.paymentMethods.length > 0 ? shop.paymentMethods : ["Cash", "UPI"];
 
   const handleReportSubmit = async (event) => {
     event.preventDefault();
@@ -120,6 +133,8 @@ function ShopDetails() {
           <p>Starting at Rs. {shop.pricePerCloth || 12} per cloth</p>
           <span>Minimum order: Rs. {shop.minimumOrderValue || 99}</span>
           <span>Turnaround: {shop.turnaroundHours || 24} hours</span>
+          <span>Status: {businessHours.currentStatus === "closed" ? "Closed" : "Open"}</span>
+          <span>Radius: {shop.serviceRadiusKm || 5} km</span>
           <span>Contact: {shop.phone || "Shared after booking"}</span>
         </aside>
       </section>
@@ -137,12 +152,44 @@ function ShopDetails() {
           </div>
         </article>
         <article className="dashboard-card">
-          <p className="dashboard-eyebrow">Service promise</p>
-          <h2>Why people choose this shop</h2>
+          <p className="dashboard-eyebrow">Business hours</p>
+          <h2>{businessHours.currentStatus === "closed" ? "Closed now" : "Open now"}</h2>
           <ul className="detail-list">
-            <li>Transparent pricing and easy pickup scheduling.</li>
-            <li>Order tracking from placed to delivered.</li>
-            <li>Suitable for daily wear, premium fabrics, and event clothing.</li>
+            <li>{businessHours.openingTime || "9:00 AM"} - {businessHours.closingTime || "9:00 PM"}</li>
+            <li>Weekly off: {businessHours.weeklyOff || "Sunday"}</li>
+            <li>{businessHours.scheduleText || "Monday - Saturday service available."}</li>
+            {shop.landmark && <li>Landmark: {shop.landmark}</li>}
+            {shop.pincode && <li>Pincode: {shop.pincode}</li>}
+          </ul>
+        </article>
+      </section>
+
+      <section className="dashboard-grid">
+        <article className="dashboard-card dashboard-card--wide">
+          <p className="dashboard-eyebrow">Price list</p>
+          <h2>Estimate before ordering</h2>
+          <div className="dashboard-order-list">
+            {priceList.map((item) => (
+              <div key={`${item.cloth}-${item.price}`} className="dashboard-order-item">
+                <strong>{item.cloth}</strong>
+                <span>Rs. {item.price}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="dashboard-card">
+          <p className="dashboard-eyebrow">Pickup and payment</p>
+          <h2>Service rules</h2>
+          <ul className="detail-list">
+            <li>Pickup: {pickupDelivery.pickupAvailable === false ? "Not available" : "Available"}</li>
+            <li>Home delivery: {pickupDelivery.homeDelivery === false ? "No" : "Yes"}</li>
+            <li>Minimum order: Rs. {shop.minimumOrderValue || 0}</li>
+            <li>Pickup charges: Rs. {pickupDelivery.pickupCharges || 0}</li>
+            <li>Delivery charges: Rs. {pickupDelivery.deliveryCharges || 0}</li>
+            <li>Free delivery above Rs. {pickupDelivery.freeDeliveryAbove || 500}</li>
+            <li>Payments: {paymentMethods.join(", ")}</li>
+            <li>Capacity: {shop.capacity?.dailyOrderLimit || 60} orders/day</li>
+            <li>Staff: {shop.staffDetails?.employees || 0} employees, {shop.staffDetails?.deliveryPartners || 0} delivery partners</li>
           </ul>
         </article>
       </section>

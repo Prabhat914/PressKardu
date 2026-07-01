@@ -23,6 +23,11 @@ const pressShopSchema = new mongoose.Schema({
     trim: true
   },
   phoneVerifiedAt: Date,
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
   subscriptionPlan: {
     type: String,
     enum: ["basic", "pro", "premium"],
@@ -116,6 +121,14 @@ const pressShopSchema = new mongoose.Schema({
     },
     updatedAt: Date
   },
+  shopLogoDataUrl: {
+    type: String,
+    trim: true
+  },
+  shopPhotosDataUrls: {
+    type: [String],
+    default: []
+  },
   shopPhotoDataUrl: {
     type: String,
     trim: true
@@ -206,6 +219,18 @@ const pressShopSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  pincode: {
+    type: String,
+    trim: true
+  },
+  landmark: {
+    type: String,
+    trim: true
+  },
+  googleMapsUrl: {
+    type: String,
+    trim: true
+  },
 
   location: {
     type: {
@@ -221,9 +246,48 @@ const pressShopSchema = new mongoose.Schema({
   },
 
   pricePerCloth: Number,
+  priceList: {
+    type: [
+      {
+        cloth: {
+          type: String,
+          trim: true
+        },
+        price: {
+          type: Number,
+          default: 0
+        }
+      }
+    ],
+    default: []
+  },
   serviceRadiusKm: {
     type: Number,
     default: 5
+  },
+  businessHours: {
+    openingTime: {
+      type: String,
+      trim: true
+    },
+    closingTime: {
+      type: String,
+      trim: true
+    },
+    weeklyOff: {
+      type: String,
+      trim: true,
+      default: "Sunday"
+    },
+    scheduleText: {
+      type: String,
+      trim: true
+    },
+    currentStatus: {
+      type: String,
+      enum: ["open", "closed"],
+      default: "open"
+    }
   },
   specialty: {
     type: String,
@@ -256,6 +320,48 @@ const pressShopSchema = new mongoose.Schema({
   minimumOrderValue: {
     type: Number,
     default: 0
+  },
+  pickupDelivery: {
+    pickupAvailable: {
+      type: Boolean,
+      default: true
+    },
+    homeDelivery: {
+      type: Boolean,
+      default: true
+    },
+    pickupCharges: {
+      type: Number,
+      default: 0
+    },
+    deliveryCharges: {
+      type: Number,
+      default: 0
+    },
+    freeDeliveryAbove: {
+      type: Number,
+      default: 500
+    }
+  },
+  capacity: {
+    dailyOrderLimit: {
+      type: Number,
+      default: 60
+    }
+  },
+  paymentMethods: {
+    type: [String],
+    default: ["Cash", "UPI"]
+  },
+  staffDetails: {
+    employees: {
+      type: Number,
+      default: 0
+    },
+    deliveryPartners: {
+      type: Number,
+      default: 0
+    }
   },
   isFeatured: {
     type: Boolean,
