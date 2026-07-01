@@ -6,6 +6,30 @@ import { enableGuestDemo, saveSession } from "../utils/session";
 import Toast from "../components/Toast";
 import AuthVisibilityField from "../components/AuthVisibilityField";
 
+const LOGIN_PREVIEW_STEPS = [
+  {
+    key: "pickup",
+    label: "Pickup",
+    eyebrow: "Pickup booked",
+    title: "Doorstep collection assigned",
+    detail: "Your shop and pickup partner appear here after login."
+  },
+  {
+    key: "press",
+    label: "Steam press",
+    eyebrow: "In progress",
+    title: "Clothes are being pressed",
+    detail: "Track pressing, folding, and quality check from your orders."
+  },
+  {
+    key: "return",
+    label: "Return",
+    eyebrow: "Out for return",
+    title: "Fresh clothes coming back",
+    detail: "Delivery status and partner updates appear in real time."
+  }
+];
+
 function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -15,6 +39,7 @@ function Login() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState("press");
+  const activePreview = LOGIN_PREVIEW_STEPS.find((step) => step.key === activeStep) || LOGIN_PREVIEW_STEPS[1];
 
   const handleChange = (e) => {
     setForm({
@@ -64,25 +89,21 @@ function Login() {
               alt="Clean folded clothes ready after professional pressing"
             />
             <div className="auth-login-visual__ticket">
-              <span>Today</span>
-              <strong>Pickup to pressed delivery</strong>
-              <small>Track every cloth order from your dashboard.</small>
+              <span>{activePreview.eyebrow}</span>
+              <strong>{activePreview.title}</strong>
+              <small>{activePreview.detail}</small>
             </div>
           </div>
           <div className="auth-login-visual__steps" aria-label="PressKardu order stages">
-            {[
-              ["pickup", "Pickup"],
-              ["press", "Steam press"],
-              ["return", "Return"]
-            ].map(([step, label]) => (
+            {LOGIN_PREVIEW_STEPS.map((step) => (
               <button
-                key={step}
-                className={activeStep === step ? "is-active" : ""}
+                key={step.key}
+                className={activeStep === step.key ? "is-active" : ""}
                 type="button"
-                aria-pressed={activeStep === step}
-                onClick={() => setActiveStep(step)}
+                aria-pressed={activeStep === step.key}
+                onClick={() => setActiveStep(step.key)}
               >
-                {label}
+                {step.label}
               </button>
             ))}
           </div>

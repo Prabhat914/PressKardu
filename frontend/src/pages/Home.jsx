@@ -74,6 +74,36 @@ const TRUST_VISUALS = [
   }
 ];
 
+const HERO_PREVIEW_STEPS = [
+  {
+    key: "pickup",
+    label: "Pickup booked",
+    order: "Order PKD-24",
+    title: "Pickup partner assigned",
+    detail: "Ravi will collect 8 clothes by 5:15 PM.",
+    badgeTitle: "Doorstep pickup",
+    badgeDetail: "Address and cloth count locked"
+  },
+  {
+    key: "pressing",
+    label: "Pressing",
+    order: "Order PKD-24",
+    title: "Steam press in progress",
+    detail: "Shirts and uniforms are being pressed and quality checked.",
+    badgeTitle: "Steam finish",
+    badgeDetail: "Folded and ready soon"
+  },
+  {
+    key: "return",
+    label: "Out for return",
+    order: "Order PKD-24",
+    title: "Delivery partner on the way",
+    detail: "Fresh clothes will arrive before 7:30 PM.",
+    badgeTitle: "Return delivery",
+    badgeDetail: "Live route and order status"
+  }
+];
+
 const WHATSAPP_NUMBER = String(import.meta.env.VITE_WHATSAPP_NUMBER || "919999999999")
   .replace(/\D/g, "");
 
@@ -163,6 +193,7 @@ function Home() {
       .includes(shopSearch.trim().toLowerCase())
   );
   const orderEstimate = selectedShop ? estimateOrderBenefits(selectedShop, orderForm) : null;
+  const activeHeroStep = HERO_PREVIEW_STEPS.find((step) => step.key === activePreviewStep) || HERO_PREVIEW_STEPS[1];
   const applyShopCollection = (incomingShops, nextLocation, nextStatus) => {
     setShops(enrichShopCollection(incomingShops, nextLocation));
     setStatus(nextStatus);
@@ -518,9 +549,9 @@ function Home() {
                   alt="Fresh laundry and professional pressing setup"
                 />
                 <div className="home-shops__order-ticket">
-                  <span>Order PKD-24</span>
-                  <strong>8 clothes picked</strong>
-                  <small>Delivery before 7:30 PM</small>
+                  <span>{activeHeroStep.order}</span>
+                  <strong>{activeHeroStep.title}</strong>
+                  <small>{activeHeroStep.detail}</small>
                 </div>
                 <div className="home-shops__fabric-stack" aria-hidden="true">
                   <span>Shirt</span>
@@ -528,24 +559,20 @@ function Home() {
                   <span>Saree</span>
                 </div>
                 <div className="home-shops__steam-badge">
-                  <strong>Steam finish</strong>
-                  <span>Folded and ready</span>
+                  <strong>{activeHeroStep.badgeTitle}</strong>
+                  <span>{activeHeroStep.badgeDetail}</span>
                 </div>
               </div>
               <div className="home-shops__service-rail home-shops__service-rail--photo">
-                {[
-                  ["pickup", "Pickup booked"],
-                  ["pressing", "Pressing"],
-                  ["return", "Out for return"]
-                ].map(([step, label]) => (
+                {HERO_PREVIEW_STEPS.map((step) => (
                   <button
-                    key={step}
-                    className={activePreviewStep === step ? "is-active" : ""}
+                    key={step.key}
+                    className={activePreviewStep === step.key ? "is-active" : ""}
                     type="button"
-                    aria-pressed={activePreviewStep === step}
-                    onClick={() => setActivePreviewStep(step)}
+                    aria-pressed={activePreviewStep === step.key}
+                    onClick={() => setActivePreviewStep(step.key)}
                   >
-                    {label}
+                    {step.label}
                   </button>
                 ))}
               </div>
