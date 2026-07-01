@@ -14,6 +14,7 @@ function Login() {
   });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState("press");
 
   const handleChange = (e) => {
     setForm({
@@ -68,10 +69,22 @@ function Login() {
               <small>Track every cloth order from your dashboard.</small>
             </div>
           </div>
-          <div className="auth-login-visual__steps" aria-hidden="true">
-            <span>Pickup</span>
-            <span>Steam press</span>
-            <span>Return</span>
+          <div className="auth-login-visual__steps" aria-label="PressKardu order stages">
+            {[
+              ["pickup", "Pickup"],
+              ["press", "Steam press"],
+              ["return", "Return"]
+            ].map(([step, label]) => (
+              <button
+                key={step}
+                className={activeStep === step ? "is-active" : ""}
+                type="button"
+                aria-pressed={activeStep === step}
+                onClick={() => setActiveStep(step)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </aside>
         <section className="auth-card auth-card--wide">

@@ -142,6 +142,7 @@ function Home() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [shopSearch, setShopSearch] = useState("");
+  const [activePreviewStep, setActivePreviewStep] = useState("pressing");
   const requestFormRef = useRef(null);
 
   const currentUser = getStoredUser();
@@ -532,9 +533,21 @@ function Home() {
                 </div>
               </div>
               <div className="home-shops__service-rail home-shops__service-rail--photo">
-                <span>Pickup booked</span>
-                <span>Pressing</span>
-                <span>Out for return</span>
+                {[
+                  ["pickup", "Pickup booked"],
+                  ["pressing", "Pressing"],
+                  ["return", "Out for return"]
+                ].map(([step, label]) => (
+                  <button
+                    key={step}
+                    className={activePreviewStep === step ? "is-active" : ""}
+                    type="button"
+                    aria-pressed={activePreviewStep === step}
+                    onClick={() => setActivePreviewStep(step)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="home-shops__visual-foot">
                 <div>

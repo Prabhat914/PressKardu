@@ -7240,6 +7240,52 @@ body,
   font-weight: 400;
 }
 
+.home-shops__service-rail--photo button,
+.auth-login-visual__steps button {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(8, 120, 111, 0.16);
+  border-radius: 7px;
+  background: #f7fbfa;
+  color: #40514c;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.home-shops__service-rail--photo button:hover,
+.auth-login-visual__steps button:hover,
+.home-shops__service-rail--photo button:focus-visible,
+.auth-login-visual__steps button:focus-visible {
+  border-color: rgba(8, 120, 111, 0.42);
+  background: #eef8f5;
+  color: #075b55;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.home-shops__service-rail--photo button.is-active,
+.auth-login-visual__steps button.is-active {
+  border-color: #08786f;
+  background: linear-gradient(180deg, #12897f, #06625b);
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(8, 120, 111, 0.2);
+}
+
+.home-shops__service-rail--photo button.is-active::before,
+.auth-login-visual__steps button.is-active::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.88;
+}
+
 .auth-shell--login .auth-card {
   position: relative;
   overflow: hidden;
