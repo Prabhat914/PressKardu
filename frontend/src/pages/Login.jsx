@@ -55,7 +55,25 @@ function Login() {
 
   return (
     <main className="auth-page auth-page--simple">
-      <section className="auth-shell auth-shell--simple auth-shell--visible">
+      <section className="auth-shell auth-shell--simple auth-shell--login auth-shell--visible">
+        <aside className="auth-login-visual" aria-label="PressKardu service preview">
+          <div className="auth-login-visual__photo">
+            <img
+              src="https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=900&q=82"
+              alt="Clean folded clothes ready after professional pressing"
+            />
+            <div className="auth-login-visual__ticket">
+              <span>Today</span>
+              <strong>Pickup to pressed delivery</strong>
+              <small>Track every cloth order from your dashboard.</small>
+            </div>
+          </div>
+          <div className="auth-login-visual__steps" aria-hidden="true">
+            <span>Pickup</span>
+            <span>Steam press</span>
+            <span>Return</span>
+          </div>
+        </aside>
         <section className="auth-card auth-card--wide">
           <div className="auth-card__halo" aria-hidden="true" />
           <p className="auth-card__eyebrow">Welcome back</p>
