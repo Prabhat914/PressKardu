@@ -507,6 +507,7 @@ function Home() {
                 <span>Nearby</span>
               </div>
               <div className="home-shops__press-board" aria-label="PressKardu ironing service preview">
+                <div className="home-shops__steam" aria-hidden="true"><span /><span /><span /></div>
                 <div className="home-shops__press-shirt">
                   <span className="home-shops__collar" />
                   <span className="home-shops__crease home-shops__crease--one" />
@@ -571,10 +572,10 @@ function Home() {
       <section className="service-flow">
         <div className="service-flow__intro">
           <p className="dashboard-eyebrow">Real service flow</p>
-          <h2>From booking to delivery, every step feels operational.</h2>
+          <h2>Your clothes, professionally pressed in four simple steps.</h2>
           <p>
-            The product now explains the real ironing journey clearly, so users
-            instantly understand what happens after they tap book.
+            Choose a local press shop and follow your garments from doorstep
+            pickup through pressing, quality check, and return delivery.
           </p>
         </div>
         <div className="service-flow__grid">
@@ -592,10 +593,10 @@ function Home() {
       <section className="pricing-showcase">
         <div className="pricing-showcase__copy">
           <p className="dashboard-eyebrow">Pricing snapshot</p>
-          <h2>Simple pricing makes the product feel like a real startup.</h2>
+          <h2>Clear prices for every garment.</h2>
           <p>
-            Clear starting rates reduce hesitation, especially for first-time users
-            checking whether pickup ironing fits their daily routine.
+            See the starting rate before you book, with no need to call multiple
+            shops for a quote.
           </p>
           <div className="pricing-showcase__actions">
             <button className="home-shops__link" type="button" onClick={handlePrimaryCta}>
@@ -620,10 +621,10 @@ function Home() {
       <section className="trust-gallery">
         <div className="trust-gallery__intro">
           <p className="dashboard-eyebrow">Visual trust</p>
-          <h2>Real-world service visuals make the concept feel believable.</h2>
+          <h2>Care you can see in every fold.</h2>
           <p>
-            Pickup bags, pressing quality, and delivery-ready garments help the
-            marketplace feel closer to an actual city service than a generic portfolio app.
+            From safe collection bags to crisp finishing, every stage is designed
+            around clean, ready-to-wear clothes.
           </p>
         </div>
         <div className="trust-gallery__grid">
