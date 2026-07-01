@@ -27,6 +27,8 @@ function Login() {
     navigate(
       data.user.role === "admin"
         ? "/admin"
+        : data.user.role === "delivery_partner"
+        ? "/delivery"
         : data.user.role === "presswala"
         ? "/shops"
         : "/"

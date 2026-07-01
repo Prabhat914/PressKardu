@@ -10,7 +10,7 @@ export function ProtectedRoute({ children, roles }) {
   }
 
   if (Array.isArray(roles) && roles.length > 0 && !roles.includes(currentUser.role)) {
-    return <Navigate to={currentUser.role === "admin" ? "/admin" : "/dashboard"} replace />;
+    return <Navigate to={currentUser.role === "admin" ? "/admin" : currentUser.role === "delivery_partner" ? "/delivery" : "/dashboard"} replace />;
   }
 
   return children;
@@ -20,7 +20,7 @@ export function GuestRoute({ children }) {
   const currentUser = getStoredUser();
 
   if (isAuthenticated() && currentUser) {
-    return <Navigate to={currentUser.role === "admin" ? "/admin" : "/dashboard"} replace />;
+    return <Navigate to={currentUser.role === "admin" ? "/admin" : currentUser.role === "delivery_partner" ? "/delivery" : "/dashboard"} replace />;
   }
 
   return children;

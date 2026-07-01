@@ -339,7 +339,8 @@ exports.signup = async (req, res)=>{
         serviceRadiusKm
     } = req.body;
 
-    const role = incomingRole === "presswala" ? "presswala" : "user";
+    const allowedPublicRoles = new Set(["user", "presswala", "delivery_partner"]);
+    const role = allowedPublicRoles.has(incomingRole) ? incomingRole : "user";
 
     if (!name || !email || !password || !phone) {
         return res.status(400).json({ message: "Name, email, phone, and password are required" });
@@ -402,7 +403,8 @@ exports.signup = async (req, res)=>{
             email: normalizedEmail,
             phone: normalizedPhone,
             role,
-            password : hashedPassword
+            password : hashedPassword,
+            ...(role === "delivery_partner" ? { deliveryProfile: { isAvailable: false } } : {})
         });
 
         if (role === "presswala") {
@@ -471,6 +473,8 @@ exports.signup = async (req, res)=>{
         pressShop,
         message: role === "presswala"
             ? "Account created. Your shop is pending admin verification before it appears publicly."
+            : role === "delivery_partner"
+            ? "Delivery partner account created successfully."
             : "Account created successfully."
     });
 };

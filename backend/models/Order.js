@@ -12,6 +12,16 @@ const orderSchema = new mongoose.Schema({
         ref : "PressShop",
         required: true
     },
+    deliveryPartner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+    deliveryEarning: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     pickupAddress: {
         type: String,
         required: true,
@@ -265,6 +275,7 @@ const orderSchema = new mongoose.Schema({
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ user: 1, status: 1, createdAt: -1 });
 orderSchema.index({ pressShop: 1, createdAt: -1 });
+orderSchema.index({ deliveryPartner: 1, status: 1, updatedAt: -1 });
 orderSchema.index({ pressShop: 1, status: 1, createdAt: -1 });
 orderSchema.index({ pressShop: 1, createdAt: 1, status: 1 });
 orderSchema.index({ paymentStatus: 1, payoutStatus: 1, updatedAt: -1 });

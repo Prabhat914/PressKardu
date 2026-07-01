@@ -17,6 +17,7 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const DeliveryDashboard = lazy(() => import("./pages/DeliveryDashboard"));
 
 function App() {
   const [theme, setTheme] = useState(() => {
@@ -52,6 +53,7 @@ function App() {
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminPanel /></ProtectedRoute>} />
+          <Route path="/delivery" element={<ProtectedRoute roles={["delivery_partner"]}><DeliveryDashboard /></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </BrowserRouter>

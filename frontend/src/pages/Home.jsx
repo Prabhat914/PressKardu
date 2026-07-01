@@ -329,18 +329,6 @@ function Home() {
     handleUseCurrentLocation();
   };
 
-  const handleSecondaryCta = () => {
-    if (shops.length > 0) {
-      document.querySelector(".home-shops__section-head")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-      return;
-    }
-
-    navigate("/shops");
-  };
-
   const handleWhatsAppCta = () => {
     const message = encodeURIComponent(
       "Hi PressKardu, I want to schedule a cloth ironing pickup."
@@ -459,20 +447,11 @@ function Home() {
             <div className="home-shops__hero-logo-wrap">
               <img className="home-shops__hero-logo" src="/presskardu-logo.png" alt="PressKardu professional ironing service logo" />
             </div>
-            <div className="home-shops__hero-badges">
-              <span>Local pressing marketplace</span>
-              <span>Pickup to delivery in one polished flow</span>
-            </div>
-            <p className="home-shops__eyebrow">PressKardu</p>
-            <div className="home-shops__eyebrow-line" />
-            <h1>Professional cloth ironing at your doorstep.</h1>
+            <p className="home-shops__eyebrow">Doorstep ironing marketplace</p>
+            <h1>Freshly pressed clothes, without leaving home.</h1>
             <p className="home-shops__copy">
-              Schedule pickup, get perfectly pressed clothes delivered back,
-              and compare trusted nearby shops without calling around.
-            </p>
-            <p className="home-shops__hero-subcopy">
-              From apartment pickups to office-wear pressing, PressKardu helps
-              customers book, track, and receive freshly ironed clothes in one smooth local flow.
+              Compare trusted local press shops, schedule a pickup, and track
+              every order until it returns ready to wear.
             </p>
 
             <div className="home-shops__signals">
@@ -484,9 +463,6 @@ function Home() {
             <div className="home-shops__actions">
               <button className="home-shops__link" type="button" onClick={handlePrimaryCta}>
                 {currentUser ? "Schedule pickup" : "Book now"}
-              </button>
-              <button className="home-shops__link home-shops__link--secondary" type="button" onClick={handleWhatsAppCta}>
-                WhatsApp us
               </button>
               {!currentUser && (
                 <button
@@ -501,10 +477,7 @@ function Home() {
                   {guestDemo ? "Guest demo active" : "Explore as guest"}
                 </button>
               )}
-              <button className="home-shops__link home-shops__link--secondary" type="button" onClick={handleSecondaryCta}>
-                View service flow
-              </button>
-              <Link className="home-shops__link home-shops__link--secondary" to="/orders">My orders</Link>
+              {currentUser && <Link className="home-shops__link home-shops__link--secondary" to="/orders">My orders</Link>}
             </div>
 
             <div className="home-shops__stats">
@@ -522,30 +495,16 @@ function Home() {
               </article>
             </div>
 
-            <div className="home-shops__hero-marquee" aria-hidden="true">
-              <span>Doorstep pickup</span>
-              <span>Signature payment flow</span>
-              <span>Live order timeline</span>
-              <span>Premium local partners</span>
-            </div>
           </div>
 
           <div className="home-shops__hero-visual">
-            <div className="home-shops__float-card home-shops__float-card--eta">
-              <strong>18 min</strong>
-              <span>Fastest pickup window nearby</span>
-            </div>
-            <div className="home-shops__float-card home-shops__float-card--trust">
-              <strong>Secure</strong>
-              <span>Backend verified payments</span>
-            </div>
             <div className="home-shops__visual-card">
               <div className="home-shops__visual-head">
                 <div>
-                  <p>PressKardu service preview</p>
-                  <h2>Book. Press. Deliver.</h2>
+                  <p>Simple local service</p>
+                  <h2>Pickup. Press. Return.</h2>
                 </div>
-                <span>Live</span>
+                <span>Nearby</span>
               </div>
               <div className="home-shops__press-board" aria-label="PressKardu ironing service preview">
                 <div className="home-shops__press-shirt">

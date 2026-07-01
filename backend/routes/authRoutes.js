@@ -39,7 +39,7 @@ router.post("/signup",
             return digits.length >= 10 && digits.length <= 15;
         })
         .withMessage("Phone must be between 10 and 15 digits"),
-    body("role").optional().isIn(["user", "presswala"]).withMessage("Invalid role"),
+    body("role").optional().isIn(["user", "presswala", "delivery_partner"]).withMessage("Invalid role"),
     validateRequest,
     signup);
 router.post("/email-verification/send-otp",

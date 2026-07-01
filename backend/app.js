@@ -8,6 +8,7 @@ const pressRoutes = require("./routes/pressRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const deliveryRoutes = require("./routes/deliveryRoutes");
 const errorMiddleware = require("./middleware/errorMiddleware");
 const { createRateLimiter } = require("./middleware/rateLimit");
 const { getOtpDeliveryStatus } = require("./utils/otpDelivery");
@@ -139,6 +140,7 @@ app.use("/api/press", pressRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/delivery", deliveryRoutes);
 app.use(errorMiddleware);
 app.get("/", (req,res)=>{
     res.send("Presskrdu backend Running");

@@ -11,6 +11,7 @@ function Navbar({ theme = "light", onToggleTheme }) {
   const guestDemo = isGuestDemo();
   const isShopkeeper = currentUser?.role === "presswala";
   const isAdmin = currentUser?.role === "admin";
+  const isDeliveryPartner = currentUser?.role === "delivery_partner";
   const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
   const [unreadCount, setUnreadCount] = useState(0);
   const [cartCount, setCartCount] = useState(() => getCartItems().length);
@@ -123,7 +124,7 @@ function Navbar({ theme = "light", onToggleTheme }) {
   return (
     <header className={`site-nav ${isAuthPage ? "site-nav--auth" : ""}`}>
       <div className="site-nav__inner">
-        <NavLink className="site-nav__brand" to={currentUser ? (isShopkeeper ? "/shops" : "/") : "/"}>
+        <NavLink className="site-nav__brand" to={currentUser ? (isDeliveryPartner ? "/delivery" : isShopkeeper ? "/shops" : "/") : "/"}>
           <span className="site-nav__brand-mark">
             <img src="/presskardu-logo.png" alt="PressKardu logo" className="site-nav__brand-logo" />
           </span>
@@ -135,19 +136,19 @@ function Navbar({ theme = "light", onToggleTheme }) {
         </NavLink>
 
         <nav className="site-nav__links" aria-label="Main navigation">
-          <NavLink className="site-nav__link" to="/">
+          {!isDeliveryPartner && <NavLink className="site-nav__link" to="/">
             Home
-          </NavLink>
-          <NavLink className="site-nav__link" to="/shops">
+          </NavLink>}
+          {!isDeliveryPartner && <NavLink className="site-nav__link" to="/shops">
             Shops
-          </NavLink>
-          <NavLink className="site-nav__link" to="/orders">
+          </NavLink>}
+          {!isDeliveryPartner && <NavLink className="site-nav__link" to="/orders">
             Orders
             {currentUser && unreadCount > 0 && (
               <span className="site-nav__badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
             )}
-          </NavLink>
-          {!isShopkeeper && !isAdmin && (
+          </NavLink>}
+          {!isShopkeeper && !isAdmin && !isDeliveryPartner && (
             <NavLink className="site-nav__link" to="/checkout">
               Cart
               {cartCount > 0 && (
@@ -155,9 +156,14 @@ function Navbar({ theme = "light", onToggleTheme }) {
               )}
             </NavLink>
           )}
-          {currentUser && (
+          {currentUser && !isDeliveryPartner && (
             <NavLink className="site-nav__link" to="/dashboard">
               Dashboard
+            </NavLink>
+          )}
+          {isDeliveryPartner && (
+            <NavLink className="site-nav__link" to="/delivery">
+              Delivery dashboard
             </NavLink>
           )}
           {isAdmin && (
@@ -227,7 +233,7 @@ function Navbar({ theme = "light", onToggleTheme }) {
             <>
               <div className="site-nav__user">
                 <span>{currentUser.name || "PressKardu user"}</span>
-                <small>{isAdmin ? "Admin" : isShopkeeper ? "Shopkeeper" : "Customer"}</small>
+                <small>{isAdmin ? "Admin" : isDeliveryPartner ? "Delivery partner" : isShopkeeper ? "Shopkeeper" : "Customer"}</small>
               </div>
               <button className="site-nav__button site-nav__button--ghost" type="button" onClick={handleLogout}>
                 Logout
@@ -235,15 +241,11 @@ function Navbar({ theme = "light", onToggleTheme }) {
             </>
           ) : (
             <>
-              {guestDemo ? (
-                <div className="site-nav__user">
-                  <span>Guest demo</span>
-                  <small>Browsing without signup</small>
-                </div>
-              ) : null}
-              <button className="site-nav__button site-nav__button--ghost" type="button" onClick={handleGuestExplore}>
-                {guestDemo ? "Continue guest demo" : "Explore as guest"}
-              </button>
+              {!guestDemo && !isAuthPage && (
+                <button className="site-nav__button site-nav__button--ghost" type="button" onClick={handleGuestExplore}>
+                  Explore as guest
+                </button>
+              )}
               <NavLink className="site-nav__button site-nav__button--ghost" to="/login">
                 Login
               </NavLink>

@@ -191,6 +191,8 @@ function Signup() {
       navigate(
         res.data.user.role === "admin"
           ? "/admin"
+          : res.data.user.role === "delivery_partner"
+          ? "/delivery"
           : res.data.user.role === "presswala"
           ? "/shops"
           : "/"
@@ -211,7 +213,7 @@ function Signup() {
           <p className="auth-card__eyebrow">Create account</p>
           <h2>Create your account</h2>
           <p className="auth-card__copy">
-            Start as a customer or register your press shop with simple account details.
+            Join as a customer, shopkeeper, or delivery partner.
           </p>
           <Toast message={message} tone="warning" inline />
           {form.role === "presswala" && (
@@ -235,6 +237,13 @@ function Signup() {
                 onClick={() => handleRoleChange("presswala")}
               >
                 Shopkeeper
+              </button>
+              <button
+                className={form.role === "delivery_partner" ? "auth-role-toggle__item auth-role-toggle__item--active" : "auth-role-toggle__item"}
+                type="button"
+                onClick={() => handleRoleChange("delivery_partner")}
+              >
+                Delivery partner
               </button>
             </div>
 

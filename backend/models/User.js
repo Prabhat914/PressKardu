@@ -21,8 +21,18 @@ const userSchema = new mongoose.Schema({
     },
     role : {
         type : String,
-        enum : ["user", "presswala", "admin"],
+        enum : ["user", "presswala", "delivery_partner", "admin"],
         default : "user"
+    },
+    deliveryProfile: {
+        isAvailable: { type: Boolean, default: false },
+        currentLocation: {
+            lat: Number,
+            lng: Number,
+            updatedAt: Date
+        },
+        completedJobs: { type: Number, default: 0 },
+        totalEarnings: { type: Number, default: 0 }
     },
     passwordReset: {
         otpHash: {
